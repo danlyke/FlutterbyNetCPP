@@ -21,6 +21,7 @@ EXESOURCES=test_file.cpp test_lambda.cpp test_flex.cpp test_tester.cpp test_rese
 EXE2SOURCES= fby.cpp test_fbydb.cpp scaninputwikifiles.cpp scanimages.cpp parsewikifiletostaging.cpp test_regexparse.cpp parsewikifilesforlinks.cpp scanwikifilesforlinks.cpp rebuilddirtyfiles.cpp 
 
 
+OUTPUTDIRECTORIES= ../obj ../bin
 
 LIBOBJECTS=$(patsubst %.cpp,../obj/%.o,$(LIBSOURCES))
 OBJECTS=$(patsubst %.cpp,../obj/%.o,$(SOURCES))
@@ -30,7 +31,8 @@ EXECUTABLE=$(patsubst %.cpp,../bin/%,$(EXESOURCES))
 EXE2OBJECTS=$(patsubst %.cpp,../obj/%.o,$(EXE2SOURCES))
 EXECUTABLE2=$(patsubst %.cpp,../bin/%,$(EXE2SOURCES))
 
-all: $(EXECUTABLE) $(EXECUTABLE2) ../var/fby.sqlite3
+all: $(EXECUTABLE) $(EXECUTABLE2) $(OUTPUTDIRECTORIES) ../var/fby.sqlite3
+	mkdir -p $(OUTPUTDIRECTORIES)
 	../bin/test_boost_options
 
 
