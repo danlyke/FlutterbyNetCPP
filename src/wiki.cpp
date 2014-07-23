@@ -1,0 +1,1684 @@
+#include "wiki.h"
+#include <stdio.h>
+#include <boost/iostreams/device/file_descriptor.hpp>
+#include <boost/iostreams/stream.hpp>
+#include <fstream>
+#include <iostream>
+#include <string.h>
+
+
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include "wikistrings.h"
+#include "filefind.h"
+#include "fbyregex.h"
+#include "regexparser.h"
+#include "stringutil.h"
+#include "wikiopenlayers.h"
+#include "wikidpl.h"
+#include "wikivideoflash.h"
+#include "wikistatusupdate.h"
+
+using namespace std;
+
+/*
+
+File size    : 1909734 bytes
+File date    : 2013:09:16 08:25:13
+Camera make  : HTC
+Camera model : myTouch_4G_Slide
+Date/Time    : 2013/08/16 07:10:43
+Resolution   : 3264 x 2448
+Focal length :  3.7mm
+ISO equiv.   : 738
+GPS Latitude : N 38d 13m 29.911s
+GPS Longitude: W 122d 37m 39.625s
+GPS Altitude :  0.00m
+JPEG Quality : 90
+*/
+
+using namespace std;
+using namespace boost::iostreams ;
+namespace fs = boost::filesystem;
+
+string dotWiki(".wiki");
+bool debug_output(false);
+
+#include "wikidb.h"
+
+class TreeBuilderWiki : public TreeBuilder {
+    string google_maps_api_key;
+    WikiDBPtr wikidb;
+public:
+    TreeBuilderWiki(string google_maps_api_key, WikiDBPtr wikidb)
+        : google_maps_api_key(google_maps_api_key), wikidb(wikidb) {}
+    ParseTreeNode *NodeFactory(const string &tagname);
+};
+
+ParseTreeNode *TreeBuilderWiki::NodeFactory(const string &tagname)
+{
+    if (tagname == "openlayers") return new OpenLayersNode();
+    if (tagname == "DPL")
+        return new DPLNode();
+    if (tagname == "videoflash") return new VideoflashNode();
+    if (tagname == "statusupdate") return new StatusUpdateNode(wikidb);
+    return new ElementNode(tagname);
+}
+
+
+
+Regex regexJheadResolution("JHead Resolution",
+                           "Resolution\\s+\\:\\s+(\\d+)\\s*x\\s*(\\d+)");
+
+Regex regexJheadAttribute("JHead Attribute",
+                          "^(.*?)\\s+\\:\\s+(.*)$");
+
+// "hostaddr = '127.0.0.1' port = '' dbname = 'fwaggle' user = 'fwaggle' password = 'password' connect_timeout = '10'"
+
+Wiki::Wiki() : BaseObj(BASEOBJINIT(Wiki)),
+               wikidb(FBYNEW WikiDB(FBYNEW FbySQLiteDB("../var/fby.sqlite3"))),
+//               wikidb(FBYNEW WikiDB(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke'"))),
+               staging_area(),
+               output_area(),
+               input_area(),
+               google_maps_api_key()
+{
+}
+
+string Wiki::WebPathFromFilename(const string &filename)
+{
+    string webpath(filename);
+    if (boost::starts_with(webpath, output_area))
+        webpath = webpath.substr(output_area.length() - 1);
+    return webpath;
+}
+
+
+void Wiki::BeginTransaction()
+{
+    wikidb->BeginTransaction();
+}
+
+void Wiki::EndTransaction()
+{
+    wikidb->EndTransaction();
+}
+
+
+
+static bool StartsWithImage(const string &wikiname, string &imagename)
+{
+    if (wikiname.substr(0,6) == "Image:")
+    {
+        imagename = wikiname.substr(6);
+        return true;
+    }
+    return false;
+}
+
+bool Wiki::Exists(const string & wikiname)
+{
+    WikiEntryPtr wikiTo;
+    string imagename;
+    if (StartsWithImage(wikiname, imagename))
+    {
+        ImagePtr image;
+
+        if (wikidb->LoadImage(image, imagename))
+            return true;
+    }
+
+    return wikidb->LoadWikiEntry(wikiTo, wikiname) && !(wikiTo->inputname.empty());
+}
+
+string Wiki::LoadFileToString(const char *filename)
+{
+    string fn(filename);
+    string mainpage("Main Page.wiki");
+
+    if (debug_output)
+        cout << "Loading file '" << filename << "' to string" << endl;
+    FILE *f = fopen(filename, "r");
+    if (NULL == f)
+    {
+        string errmsg("Unable to open: ");
+        errmsg += filename;
+        cerr << errmsg << endl;
+        THROWEXCEPTION(errmsg);
+    }
+    fseek(f, 0L, SEEK_END);
+    size_t length = ftell(f);
+    fseek(f, 0L, SEEK_SET);
+    
+    char *buffer = new char[length + 1];
+    buffer[length] = 0;
+    fread(buffer, length, 1, f);
+    fclose(f);
+   
+    length = RemoveCRs(buffer, length);
+    string s(buffer, length);
+    delete[] buffer;
+    return s;
+}
+
+void Wiki::ScanWikiFileForLinks(const char *filename)
+{
+    TreeBuilderWiki treeBuilder(google_maps_api_key, wikidb);
+    string thisWikiName(filename);
+    size_t pos;
+    pos = thisWikiName.rfind('/');
+    if (pos != string::npos) thisWikiName.erase(0, pos + 1);
+    pos = thisWikiName.rfind('.');
+    if (pos != string::npos)
+    {
+        if (thisWikiName.substr(pos) != dotWiki)
+            return;
+        if (thisWikiName[0] == '.')
+            return;
+
+        thisWikiName.erase(pos);
+    }
+    thisWikiName = NormalizeWikiName(thisWikiName);
+
+    string buffer = LoadFileToString(filename);
+    {
+        TreeParser treeParser;
+        treeParser.Parse(treeBuilder, buffer.c_str(),buffer.length());
+    }
+
+
+    WikiEntryPtr wikiEntry;
+
+    if (debug_output)
+        cout << "Should be creating '" << thisWikiName << "'" << endl;
+
+    if (wikidb->LoadOrCreateWikiEntry(wikiEntry, thisWikiName)
+        || wikiEntry->inputname.empty())
+    {
+        if (debug_output)
+            cout << "Marking '" << thisWikiName << "' dirty, wasLoaded is " << wikiEntry->WasLoaded() << endl;
+
+        wikiEntry->inputname = filename;
+        wikiEntry->needsContentRebuild = true;
+        wikidb->WriteWikiEntry(wikiEntry);
+    }
+    
+    vector<WikiEntryReferencePtr> wikiEntryReferences;
+    wikidb->LoadWikiReferencesFrom(wikiEntryReferences, thisWikiName);
+
+    vector<string> currentLinks;
+    for (auto wikiEntryReference = wikiEntryReferences.begin();
+         wikiEntryReference != wikiEntryReferences.end();
+         ++wikiEntryReference)
+    {
+        currentLinks.push_back((*wikiEntryReference)->to_wikiname);
+    }
+
+    vector<string> addLinks;
+    vector<string> delLinks;
+    HTMLOutputterOutboundLinks olinks;
+    treeBuilder.AsHTML(olinks);
+
+    for (auto wikiname = currentLinks.begin(); 
+         wikiname != currentLinks.end(); ++wikiname)
+    {
+        if (olinks.GetLinks().end() == find(olinks.GetLinks().begin(),
+                  olinks.GetLinks().end(), *wikiname))
+            delLinks.push_back(*wikiname);
+    }
+
+    for (auto wikiname = olinks.GetLinks().begin(); 
+         wikiname != olinks.GetLinks().end(); ++wikiname)
+    {
+        if (currentLinks.end() == find(currentLinks.begin(),
+                  currentLinks.end(),
+                  *wikiname))
+            addLinks.push_back(*wikiname);
+    }
+    for (auto wikiname = delLinks.begin();
+         wikiname != delLinks.end();
+         ++wikiname)
+    {
+        wikidb->DeleteWikiReference(thisWikiName, *wikiname);
+    }
+
+    for (auto wikiname = addLinks.begin();
+         wikiname != addLinks.end();
+         ++wikiname)
+    {
+        wikidb->AddWikiReference(thisWikiName, *wikiname);
+    }
+}
+
+
+
+bool FindJPEGSize(const string &filename,
+                  int & width, int & height,
+                  map<string,string> &attributes)
+{
+    string command("jhead '" + filename + "'");
+
+    FILE *f = popen(command.c_str(), "r");
+    if (NULL == f)
+    {
+        string errstr("Unable to popen: " + command);
+        perror(errstr.c_str());
+        return false;
+    }
+
+    char buffer[256];
+    RegexMatch match;
+    while (NULL != fgets(buffer, sizeof(buffer) - 1, f))
+    {
+        string s(buffer);
+        if (regexJheadResolution.Match(s, match))
+        {
+            width = stoi(match.Match(1));
+            height = stoi(match.Match(2));
+
+//            cout << "Image " << filename << " is " << match.Match(1) << " by " << match.Match(2) << endl;
+        }
+        else if (regexJheadAttribute.Match(s, match))
+        {
+            attributes[match.Match(1)] = match.Match(2);
+        }
+// << s << endl;
+    }
+
+    pclose(f);
+    return true;
+}
+
+void Wiki::CreateThumbnail(string targetdir, string imagefile, int width)
+{
+    string imagepath(targetdir + imagefile);
+    string destimagepath(targetdir + to_string(width) + "px-" + imagefile);
+    string cmd("convert -auto-orient -geometry "
+               + to_string(width) + "x" + to_string(width)
+               + " '" + imagepath 
+               + "' '" + destimagepath + "'");
+    ::system(cmd.c_str());
+    LoadJPEGData(destimagepath);
+}
+
+string Wiki::ImageNameFromImageFileName( const string & filename )
+{
+    string wikiname(filename);
+    size_t pos = wikiname.find('!');
+    if (pos != string::npos)
+        wikiname = wikiname.erase(0, pos + 1);
+
+    pos = wikiname.find("px-");
+    if (pos != string::npos)
+    {
+        size_t i;
+        for (i = 0; i < pos; ++i)
+        {
+            if (!isdigit(wikiname[i]))
+                break;
+        }
+        wikiname = wikiname.erase(0,pos+3);
+    }
+    string imagename = wikiname;
+    return imagename;
+}
+
+void Wiki::LoadJPEGData(const std::string &imagepath)
+{
+    std::string path(imagepath);
+    time_t lastWriteTime(last_write_time(imagepath));
+    ImageInstancePtr imageInstance;
+
+    if (debug_output)
+        cout << "LoadJPEGData: Looking for " << imagepath << endl;
+
+    if (wikidb->LoadImageInstance(imageInstance, imagepath))
+    {
+        cout << "Comparing " << lastWriteTime << " to " << imageInstance->mtime << endl;
+        if (lastWriteTime <= imageInstance->mtime)
+        {
+            if (debug_output)
+                cout << "  last write time " << lastWriteTime << " was less than "
+                     << imageInstance->mtime << endl;
+
+            return;
+        }
+    }
+
+    string filename(path);
+    size_t pos = filename.rfind("/");
+    if (pos != string::npos)
+    {
+        filename = filename.erase(0, pos + 1);
+    }
+
+    pos = filename.rfind('.');
+    if (pos != string::npos
+        && !strcasecmp(filename.c_str() + pos, ".jpg"))
+    {
+        string imagename(ImageNameFromImageFileName(filename));
+        string wikiname("Image:" + imagename);
+
+        int width = -1, height = -1;
+        map<string,string> attributes;
+        if (FindJPEGSize(imagepath, width, height, attributes))
+        {
+            if (debug_output)
+                cout << "Found size " << width << " by " << height << " for " << imagename << " path " << imagepath << endl;
+
+            ImagePtr image;
+            wikidb->LoadOrCreateImage(image, imagename);
+
+            WikiEntryPtr wikientry;
+            bool writeWikiEntry = false;
+
+            if (wikidb->LoadOrCreateWikiEntry(wikientry, wikiname))
+            {
+                if (debug_output)
+                    cout << "LoadOrCreate wikientry returned true\n";
+
+                wikientry->needsContentRebuild = true;
+                writeWikiEntry = true;
+            }
+
+            if (wikidb->LoadOrCreateImageInstance(imageInstance, imagepath))
+            {
+                if (debug_output)
+                    cout << "LoadOrCreate imageinstance returned true\n";
+
+                imageInstance->width = width;
+                imageInstance->height = height;
+                imageInstance->mtime = lastWriteTime;
+                imageInstance->imagename = imagename;
+
+                wikidb->WriteImageInstance(imageInstance);
+
+                wikientry->needsContentRebuild = true;
+                writeWikiEntry = true;
+            }
+            if (writeWikiEntry)
+            {
+                wikidb->WriteWikiEntry(wikientry);
+            }
+            
+        }
+    }
+
+}
+
+void Wiki::LoadPNGData(const std::string &imagepath)
+{
+    std::string path(imagepath);
+
+//    cout << "Path is " << path << endl;
+    string filename(path);
+    size_t pos = filename.rfind("/");
+    if (pos != string::npos)
+    {
+        filename = filename.erase(0, pos + 1);
+    }
+
+    pos = filename.rfind('.');
+    if (pos != string::npos
+        && !strcasecmp(filename.c_str() + pos, ".jpg"))
+    {
+        string wikiname(filename);
+//        int width = -1, height = -1;
+//        cout << "Wiki name Image:" << wikiname << endl;
+//        FindPNGSize(filename, width, height);
+    }
+}
+
+
+
+
+using namespace std;
+namespace fs = boost::filesystem;
+typedef map<string, std::time_t> result_set_t;
+fs::directory_iterator end_iter;
+
+//                 # .stem!
+
+
+class FileNameAndTime
+{
+public:
+    result_set_t &rs;
+    FileNameAndTime(result_set_t &_rs) : rs(_rs) {};
+    void operator ()(fs::directory_iterator /* dir_iter */)
+    {
+    }
+};
+
+
+class CompareWithStaging
+{
+public:
+    result_set_t &rs;
+    CompareWithStaging(result_set_t &_rs) : rs(_rs) {};
+    void operator ()(fs::directory_iterator dir_iter)
+    {
+        string wikiname(NormalizeWikiName(dir_iter->path().filename().stem().string()));
+        string filename(NormalizeWikiNameToFilename(wikiname));
+        string destname(filename + ".html");
+        result_set_t::iterator source = rs.find(destname);
+                
+        if (rs.end() != source)
+        {
+            std::time_t t(fs::last_write_time(*dir_iter));
+            if (debug_output)
+                cout << wikiname << " as " << filename << " comparing " << t << " to " << source->second << endl;
+
+        }
+    }
+};
+
+
+
+
+void Wiki::ScanWikiFiles(const char *inputDir, const char *stagingDir)
+{
+    result_set_t stagingFiles;
+    FileNameAndTime fnat(stagingFiles);
+
+    FileFind(stagingDir,
+             [&stagingFiles](fs::directory_iterator dir_iter)
+             {
+                 if (dir_iter->path().filename().extension() == "wiki")
+                 {
+                     string path(dir_iter->path().filename().string());
+                     size_t pos = path.rfind("/");
+                     if (pos != string::npos)
+                     {
+                         path = path.erase(0, pos);
+                     }
+                     stagingFiles.insert(result_set_t::value_type(path, fs::last_write_time(*dir_iter)));
+                 }
+             }
+        );
+
+    FileFind(inputDir, [this, &stagingFiles](fs::directory_iterator dir_iter)
+             {
+                 if (dir_iter->path().filename().extension() == dotWiki)
+                 {
+                     string inputname(dir_iter->path().filename().string());
+                     if (inputname[0] == '.')
+                         return;
+
+                     string basename(dir_iter->path().filename().stem().string());
+                     string wikiname(NormalizeWikiName(basename));
+                     string filename(NormalizeWikiNameToFilename(wikiname));
+                     string destname(filename + ".html");
+                     result_set_t::const_iterator source = stagingFiles.find(destname);
+
+                     WikiEntryPtr entry;
+                     if (!wikidb->LoadOrCreateWikiEntry(entry, wikiname))
+                     {
+                         bool dirty = false;
+                         if (entry->inputname.empty())
+                         {
+                             entry->inputname = inputname;
+                             dirty = true;
+                         }
+
+                         if (stagingFiles.end() != source)
+                         {
+                             std::time_t t(fs::last_write_time(*dir_iter));
+                             if (t > source->second)
+                                 dirty = true;
+                         }
+                         else
+                         {
+                             dirty = true;
+                             
+                         }
+                         if (dirty)
+                         {
+//                             cout << "Marking " << wikiname
+//                                  << " dirty, would write to " << destname << endl;
+//                             cout << "   " << (stagingFiles.end() != source ? "time" : "missing dest") << endl;
+                             entry->needsContentRebuild = true;
+                             wikidb->WriteWikiEntry(entry);
+                         }
+                     }
+                     else
+                     {
+                         if (debug_output)
+                             cout << "Adding " << wikiname << endl;
+
+//                         entry->wikiname = wikiname;
+                         entry->inputname = inputname;
+                         entry->needsContentRebuild = true;
+                         entry->needsExternalRebuild = false;
+                         wikidb->WriteWikiEntry(entry);
+                     }
+                 }
+             });
+//    FileFind("/home/danlyke/websites/flutterby.net/mvs", CompareWithStaging(stagingFiles));
+}
+
+
+void Wiki::ScanWikiFilesForLinks(const char *inputDir, const char * /* stagingDir */)
+{
+    result_set_t stagingFiles;
+    FileNameAndTime fnat(stagingFiles);
+
+    FileFind(inputDir,
+             [this](fs::directory_iterator dir_iter)
+             {
+                 string path(dir_iter->path().string());
+                 ScanWikiFileForLinks(path.c_str());
+             }
+        );
+}
+
+string Wiki::LoadWikiText(WikiEntryPtr wikiEntry)
+{
+    string fileContents;
+    if (debug_output)
+        cout << "Attempting to load file text for '" << wikiEntry->wikiname << "'" << endl;
+
+    string imagename;
+    if (StartsWithImage(wikiEntry->wikiname, imagename) && wikiEntry->inputname.empty())
+    {
+        ImagePtr image;
+
+        if (wikidb->LoadImage(image, imagename))
+        {
+            if (wikidb->ImageHasInstances(image))
+            {
+                ImageInstancePtr fullsize(wikidb->ImageInstanceFullsize(image));
+                ImageInstancePtr thumb(wikidb->ImageInstanceThumb(image));
+                ImageInstancePtr original(wikidb->ImageInstanceOriginal(image));
+                
+                fileContents += "== Full Size ==\n\n";
+                fileContents += "<img src=\"" + WebPathFromFilename(fullsize->filename)
+                    + "\" width=\"" + to_string(fullsize->width)
+                    + "\" height=\"" + to_string(fullsize->height)
+                    + "\" />\n\n";
+
+                vector<ImageInstancePtr> instances = wikidb->ImageInstances(image);
+
+                fileContents += "All sizes: ";
+                for (auto instance = instances.begin();
+                     instance != instances.end();
+                     ++instance)
+                {
+                    if (instance != instances.begin())
+                        fileContents += " | ";
+
+                    fileContents +=  "<a href=\"" + WebPathFromFilename((*instance)->filename)
+                        + "\">" + to_string((*instance)->width)
+                        + "x" + to_string((*instance)->height)
+                    + "</a>";
+
+                }
+                fileContents += "\n\n";
+
+
+                int width(0), height(0);
+                map<string,string> attributes;
+                if (FindJPEGSize(original->filename, width, height, attributes))
+                {
+                    fileContents += "<ul>";
+                    for (auto attr = attributes.begin(); attr != attributes.end(); ++attr)
+                    {
+                        fileContents += "<li><em>" + attr->first + "</em> : " + attr->second + "</li>\n";
+                    }
+                    fileContents += "</ul>\n";
+                }
+            }
+        }
+    }
+    else
+    {
+        string filename(wikiEntry->inputname);
+        if (!filename.empty())
+            fileContents = LoadFileToString(filename.c_str());
+    }
+    return fileContents;
+}
+
+static void CopyChangedFiles(const string &source_dir, const string &target_dir)
+{
+    FileFind(source_dir,
+             [source_dir, target_dir](fs::directory_iterator dir_iter)
+             {
+                 string source_filename(dir_iter->path().filename().string());
+                 string target_filename(dir_iter->path().filename().string());
+                 size_t pos = target_filename.rfind("/");
+                 if (pos != string::npos)
+                 {
+                     target_filename = target_filename.erase(0, pos);
+                 }
+                 target_filename = target_dir + target_filename;
+
+
+                 file_status target_status(status(target_filename));
+
+                 if (exists(target_status) 
+                     && last_write_time(target_filename) >= last_write_time(source_filename))
+                     return;
+
+                 FILE *source_file = fopen(source_filename.c_str(), "r");
+                 if (source_file == NULL)
+                 {
+                     cerr << "Unable to open " << source_filename << " for reading" << endl;
+                 }
+                 else
+                 {
+                     long source_length;
+                     fseek(source_file, 0L, SEEK_END);
+                     source_length = ftell(source_file);
+                     
+                     bool do_the_copy = false;
+                     char *source_bytes = new char[source_length];
+                     fseek(source_file, 0L, SEEK_SET);
+                     fread(source_bytes, source_length, 1, source_file);
+                     fclose(source_file);
+                     
+                     long target_length = -1;
+                     FILE *target_file = fopen(target_filename.c_str(), "r");
+                     if (NULL != target_file)
+                     {
+                         fseek(target_file, 0L, SEEK_END);
+                         target_length = ftell(target_file);
+                         
+                         if (target_length == source_length)
+                         {
+                             char *target_bytes = new char [target_length];
+                             fseek(target_file, 0L, SEEK_SET);
+                             fread(target_bytes, target_length, 1, target_file);
+                             if (memcmp(target_bytes, source_bytes, target_length))
+                                 do_the_copy = true;
+                             delete[] target_bytes;
+                         }
+                         else
+                             do_the_copy = true;
+                         
+                         fclose(target_file);
+                     }
+                     else
+                         do_the_copy = true;
+                     
+                     if (do_the_copy)
+                     {
+//                         cout << "Copying " << source_filename << " to " << target_filename << endl;
+                         target_file = fopen(target_filename.c_str(), "w");
+                         if (NULL == target_file)
+                         {
+                             cerr << "Unable to open "
+                                  << target_filename.c_str()
+                                  << " for writing" << endl;
+                         }
+                         fwrite(source_bytes, source_length, 1, target_file);
+                         fclose(target_file);
+                     }
+                     else
+                     {
+//                         cout <<  "Skipping " << source_filename << endl;
+                     }
+                     delete[] source_bytes;
+                 }
+             });
+}
+
+
+void Wiki::DoWikiFile(string wikiname)
+{
+    WikiEntryPtr wikientry;
+    if (wikidb->LoadWikiEntry(wikientry, wikiname))
+    {
+        string s(LoadWikiText(wikientry));
+
+        if (!s.empty())
+        {
+            ParseWikiBufferToOutput(wikientry->wikiname,
+                                    s.data(), s.length(),
+                                    staging_area.c_str());
+            
+            wikientry->needsContentRebuild = false;
+            wikientry->needsExternalRebuild = false;
+            wikidb->WriteWikiEntry(wikientry);
+        }
+    }
+    else
+    {
+        cerr << "Wiki entry '" << wikiname << "' not found" << endl;
+    }
+    CopyChangedFiles(staging_area, output_area);
+}
+
+void Wiki::RebuildDirtyFiles(const char *outputdir)
+{
+    vector<WikiEntryPtr> wikientries;
+    wikidb->LoadDirtyWikiEntries(wikientries);
+    for(auto wikientry = wikientries.begin();
+        wikientry != wikientries.end();
+        ++wikientry)
+    {
+        cout << "Rebuilding " << (*wikientry)->wikiname << endl;
+        string s(LoadWikiText(*wikientry));
+
+        if (!s.empty())
+        {
+            ParseWikiBufferToOutput((*wikientry)->wikiname,
+                                    s.data(), s.length(),
+                                    outputdir);
+            
+            (*wikientry)->needsContentRebuild = false;
+            (*wikientry)->needsExternalRebuild = false;
+            wikidb->WriteWikiEntry(*wikientry);
+        }
+    }
+}
+
+void Wiki::ParseAndOutputFile(const char *inputfile, const char *outputdir)
+{
+    string buffer = LoadFileToString(inputfile);
+    
+    string wikiname(FilenameToWikiName(string(inputfile)));
+    ParseWikiBufferToOutput(wikiname, buffer.c_str(), buffer.length(), outputdir);
+}
+
+void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t length, const char * outputdir)
+{
+    string outputpath(outputdir);
+    bool includeLoginManager(true);
+    TreeBuilderWiki treeBuilder(google_maps_api_key, wikidb);
+    {
+        TreeParser treeParser;
+        treeParser.Parse(treeBuilder, buffer,length);
+    }
+
+    
+    cerr << "Parsing wiki buffer to output '" << wikiname << "' outputdir '" << outputdir << "'" << endl;
+
+
+    outputpath += "/" + NormalizeWikiNameToFilename(wikiname) + ".html";
+    
+    if (debug_output)
+        cout << "Opening " << outputpath << endl;
+
+    std::filebuf output;
+    output.open(outputpath, std::ios::out);
+    ostream os(&output);
+    string onload;
+
+    os << "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"  \"http://www.w3.org/TR/html4/loose.dtd\">\n";
+    os << "<html><head><title>" << wikiname << "</title>\n";
+    os << "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n";
+    os << "<style type=\"text/css\">@import \"/screen.css\";</style>\n";
+    os << "<link href=\"/favicon.ico\" rel=\"icon\" type=\"image/ico\"></link>\n";
+    os << "<link href=\"/favicon.ico\" rel=\"shortcut icon\"></link>\n";
+
+    if (treeBuilder.HasA("openlayers")
+        || treeBuilder.ReferencesImage()
+        || includeLoginManager)
+    {
+        os << "<script type=\"text/javascript\" src=\"js/jquery-1.7.1.min.js\"></script>\n";
+    }
+
+    if (includeLoginManager)
+    {
+        string login_manager("/cgi-bin/loginmgr.pl");
+        os << "<script src=\"js/jquery.cookie.js\" type=\"text/javascript\" ></script>\n";
+
+        onload += "if ($.cookie('magic')) { $.get('"
+            + login_manager + "', { n:'"
+            + wikiname + "' }, function(data,status,request) { $('#login').html(data); }); }\n";
+    }
+    
+    if (treeBuilder.ReferencesImage())
+    {
+        os << "<script type=\"text/javascript\" src=\"js/jquery.lightbox-0.5.js\"></script>\n";
+        os << "<link rel=\"stylesheet\" href=\"css/jquery.lightbox-0.5.css\" type=\"text/css\" media=\"screen\"></link>\n";
+        os << "<script \"text/javascript\">"
+            "$(function() {\n"
+            "    // Use this example, or...\n"
+            "    $('a[rel|=\"lightbox\"]').lightBox(); // Select all links that contains lightbox in the attribute rel\n"
+            "});\n"
+            "</script>\n";
+    }
+    if (treeBuilder.HasA("googlemap") || treeBuilder.HasA("openlayers")) {
+        os << "<script type=\"text/javascript\" src=\"http://maps.google.com/maps/api/js?sensor=false&v=3.6&key=" << google_maps_api_key << "\"></script>\n";
+    }
+    if (treeBuilder.HasA("openlayers"))
+    {
+        os << "<script type=\"text/javascript\" src=\"js/fby/maputils.js\"></script>\n";
+    }
+    if (treeBuilder.HasA("googlemap") || treeBuilder.HasA("openlayers")) {
+        os << "<script type=\"text/javascript\">"
+            "//<![CDATA[\n"
+            "var mapIcons = {};function addLoadEvent(func) {var oldonload = window.onload;if (typeof oldonload == 'function') {window.onload= function() {oldonload();func();};} else {window.onload = func;}}\n"
+            "//]]>\n</script>\n";
+    }
+    if (treeBuilder.HasA("openlayers")) {
+        os <<
+            "<link rel=\"stylesheet\" href=\"js/ol/default/style.css\" type=\"text/css\">\n"
+            "</link>\n"
+            "<link  rel=\"stylesheet\" href=\"js/ol/default/google.css\" type=\"text/css\">\n"
+            "</link>\n"
+            "<script type=\"text/javascript\" src=\"js/OpenLayers-2.11/OpenLayers.js\">\n"
+            "</script>\n"
+            "<script type=\"text/javascript\" src=\"js/OSM_LocalTileProxy.js\">\n"
+            "</script>\n";
+    }
+
+
+    if (!onload.empty())
+    {
+        os << "<script type=\"text/javascript\">";
+        os << "//<![CDATA[\n";
+        os << "$(document).ready(function() {\n";
+        os << onload;
+        os << "});\n";
+        os << "//]>\n";
+        os << "</script>\n";
+    }
+
+    if (wikiname == "User:DanLyke")
+    {
+        os << "<link rel=\"openid2.provider\" href=\"https://www.google.com/accounts/o8/ud\">\n";
+        os << "</link>\n";
+        os << "<link rel=\"openid2.local_id\" href=\"https://profiles.google.com/danlyke1\">\n";
+        os << "<link rel=\"meta\" type=\"application/rdf+xml\" title=\"FOAF\" href=\"http://www.flutterby.net/User%3aDanLyke_foaf.rdf\" />\n";
+        os << "<link rel=\"alternate\" type=\"text/directory\"\n";
+    }
+    if (wikiname.substr(0,9) == "Category:")
+    {
+        os << "<link rel=\"alternate\" href=\"http://www.flutterby.net/$syndifile.rss\" title=\"RSS\" type=\"application/rss+xml\" />\n";
+    }
+
+    os << "</head>\n";
+    os << "<body>\n";
+    if (includeLoginManager)
+    {
+        os << "<div id=\"login\"></div>";
+    }
+    os << "<h1>" << wikiname << "</h1>\n";
+
+    os << "<div class=\"sidebar\"><div class=\"navbar\"><h2>Navigation</h2>\n";
+    os << "<ul><li><a href=\"Main_Page\">Main Page</a>\n";
+    os << "</li><li><a href=\"Categories\">Categories</a>\n";
+    os << "</li><li><a href=\"User%3aDanLyke\">Dan Lyke</a>\n";
+    os << "</li></ul>\n";
+    os << "</div>";
+
+    vector<WikiEntryReferencePtr> wikiEntryReferences;
+    wikidb->LoadWikiReferencesTo(wikiEntryReferences, wikiname);
+
+    if (!wikiEntryReferences.empty())
+	{
+        os << "<div class=\"linkshere\">\n<h2>Pages which link here</h2>\n<ul>";
+
+        for_each(wikiEntryReferences.begin(),
+                 wikiEntryReferences.end(),
+                 [&os] (WikiEntryReferencePtr wikiEntryReference)
+                 {
+                     os << "<li><a href=\"./";
+                     os << NormalizeWikiNameToFilename(wikiEntryReference->from_wikiname);
+                     os << "\">";
+                     os << wikiEntryReference->from_wikiname;
+                     os << "</a></li>\n";
+                 }
+            );
+        os << "</ul></div>\n";
+	}
+
+    os << "</div><div class=\"contentcolumn\">";
+
+    vector<ParseTreeNodePtr> sections;
+    treeBuilder.ForEach(
+        [&sections](ParseTreeNodePtr n)
+        {
+            if (n->Name().length() == 2
+                && n->Name()[0] == 'h'
+                && isdigit(n->Name()[1]))
+            {
+                sections.push_back(n);
+            }
+        });
+    if (!sections.empty())
+    {
+        ParseTreeNodePtr div(new ElementNode("div"));
+        div->AddAttribute("class");
+        div->AddAttributeValue("sections");
+        
+        ParseTreeNodePtr h2(new ElementNode("h2"));
+        h2->AddText("Sections");
+        div->AddChild(h2);
+
+        ParseTreeNodePtr ul(new ElementNode("ul"));
+        div->AddChild(ul);
+
+        for (auto section = sections.begin(); section != sections.end(); ++section)
+        {
+            string section_name;
+
+            (*section)->ForEachChild([&section_name](ParseTreeNode *node)
+                                     {
+                                         if (node->Name() == "a"
+                                             && !node->GetAttribute("name").empty())
+                                         {
+                                             section_name += node->GetAttribute("name");
+                                         }
+                                     });
+            ParseTreeNodePtr a(new ElementNode("a"));
+            
+            a->AddAttribute("href");
+            a->AddAttributeValue("#");
+            a->AddAttributeValue(section_name);
+            a->AddText((*section)->GetText());
+
+            ParseTreeNodePtr li(new ElementNode("li"));
+            li->AddChild(a);
+            ul->AddChild(li);
+        }
+
+        treeBuilder.Graft(div, 1);
+    }
+
+/*
+        if ($i == 1)
+        {
+            unshift @contentdiv,
+                (
+                 'div',
+                 [ {class=>'sections'}, 
+                   'h2', [{}, '0', 'Sections' ],
+                   '0', "\n",
+                   @list,
+                   '0', "\n",
+                 ],
+                 );
+        }
+        elsif ($i < @$subbody)
+        {
+            my @rest = splice @$subbody, $i, scalar($subbody) - $i;
+            push @contentdiv,
+                (
+                 'div',
+                 [ {class=>'sections'}, 
+                   'h2', [{}, '0', 'Sections' ],
+                   '0', "\n",
+                   @list,
+                   '0', "\n",
+                 ],
+                 'div',
+                 [ {class => 'content'}, @rest],
+
+                );
+        }
+*/
+
+    HTMLOutputterWikiString outputter(os, WikiPtr(this), wikiname);
+    
+    treeBuilder.AsHTML(outputter);
+os << "<br clear=\"all\"></br><div class=\"footer\">";
+if (treeBuilder.HasA("openlayers"))
+{
+    os << "<p>Gratefully acknowledged: "
+        "<a href=\"http://www.openstreetmap.org/\">OpenStreetMap</a> "
+        "map tiles &copy; OpenStreetMap contributors, cartography is licensed under the "
+        "<a href=\"http://creativecommons.org/licenses/by-sa/2.0/\"> "
+        "Creative Commons Attribution-ShareAlike 2.0 license"
+        "</a>"
+        " and tiles are cached on my servers (so may be out of date). "
+        "<a href=\"http://maps.google.com/\">Google Maps</a>"
+        " map tiles are used under the terms of their license.";
+}
+os <<   "<p>Flutterby.net is a publication of "
+        "<a href=\"mailto:danlyke@flutterby.com\">Dan Lyke</a> "
+        "and unless otherwise noted, copyright by Dan Lyke"
+        "</p></div></div></body></html>";
+    os << endl;
+}
+
+
+
+void Wiki::GetImageHTML(ostream &os,
+                        const string &thisWikiName,
+                        const string &wikiname,
+                        const string &imagename,
+                        const string &text)
+{
+    ImagePtr img;
+
+    if (debug_output)
+        cout << "Searching for image " << wikiname << " " << imagename << endl;
+
+
+    bool hasImage = wikidb->LoadImage(img, imagename);
+    vector<string> notes = split(text, '|');
+    string align;
+    string desc;
+    string width;
+    string divclass("image");
+    string caption;
+    vector<ImageInstancePtr> imginstances;
+
+    for (auto note = notes.begin(); note != notes.end(); ++note)
+    {
+        if (*note == "thumb" && hasImage)
+        {
+            if (wikidb->ImageHasInstances(img))
+            {
+                ImageInstancePtr instance(wikidb->ImageInstanceThumb(img));
+                if (FBYTYPEDNULL(ImageInstancePtr) != instance)
+                {
+                    imginstances.push_back(instance);
+                }
+            }
+        }
+        else if (*note == "full" && hasImage)
+        {
+            if (wikidb->ImageHasInstances(img))
+            {
+                ImageInstancePtr instance(wikidb->ImageInstanceFullsize(img));
+                if (FBYTYPEDNULL(ImageInstancePtr) != instance)
+                {
+                    if (debug_output)
+                        cout << "Found full " << instance->filename << endl;
+
+                    imginstances.push_back(instance);
+                }
+            }
+        }
+        else if (*note == "left" || *note == "right")
+        {
+            align = *note;
+        }
+        else if (*note == "frame")
+        {
+            divclass = "imageframed";
+        }
+        else if (*note == "none")
+        {
+        }
+        else
+        {
+            desc += *note;
+        }
+    }
+
+    if (imginstances.empty())
+    {
+        if (hasImage && wikidb->ImageHasInstances(img))
+        {
+            ImageInstancePtr instance(wikidb->ImageInstanceFullsize(img));
+            if (FBYTYPEDNULL(ImageInstancePtr) != instance)
+            {
+                if (debug_output)
+                    cout << "Defaulted " << instance->filename << endl;
+
+                imginstances.push_back(instance);
+            }
+        }
+    }
+    for (auto imginst = imginstances.begin();
+         imginst != imginstances.end();
+         ++imginst)
+    {
+        if (ImageInstancePtr() != *imginst)
+        {
+            if ((*imginst)->NeedsDimensionsLoaded())
+            {
+                (*imginst)->LoadDimensions();
+                wikidb->WriteImageInstance(*imginst);
+            }
+            width = "style=\"width: "
+                + to_string((*imginst)->width) + "px;\"";
+            if (imginstances.size() > 1)
+            {
+                caption += " (" + to_string((*imginst)->width)
+                    + " by " + to_string((*imginst)->height) + ")";
+            }
+        }
+        if (!hasImage)
+        {
+            divclass = "imagemissing";
+//            cerr <<  "Missing " << imagename << " from database\n";
+        }
+        
+        os <<  "<div class=\"" << divclass << align
+           << "\" " << width << ">";
+        WikiEntryPtr wikientry;
+        if (wikidb->LoadOrCreateWikiEntry(wikientry, wikiname))
+            wikidb->WriteWikiEntry(wikientry);
+
+        wikidb->AddWikiReference(thisWikiName, wikiname);
+
+
+        bool targetExists = Exists(wikiname);
+        
+        if (targetExists)
+            os << "<a href=\"./" << wikiname << "\">";
+        if (ImageInstancePtr() != *imginst)
+        {
+            os << "<img src=\"" << WebPathFromFilename((*imginst)->filename)
+               << "\" width=\"" << to_string((*imginst)->width)
+               << "\" height=\"" << to_string((*imginst)->height)
+               << "\" alt=\"" << "\" />";
+        }
+        else
+        {
+            os << "<em>Image not found: " << wikiname << "</em>" << endl;
+        }
+        
+
+        if (targetExists)
+            os <<  "</a>";
+
+        if (!hasImage)
+        {
+            ImageInstancePtr zoominst(wikidb->ImageInstanceLightboxZoom(img));
+            if (ImageInstancePtr() != zoominst)
+            {
+                os << "<a href=\"./";
+                os << WebPathFromFilename(zoominst->filename);
+                os << "\" rel=\"lightbox\" caption=\"";
+                os << caption;
+                os << "\">";
+                os << "<div class=\"imagezoombox\">&nbsp;</div></a>\n";
+            }
+        }
+        if (!caption.empty())
+        {
+            os << "<div class=\"imagecaption\"><p class=\"imagecaption\">";
+            os << caption;
+            os << "</p></div>";
+        }
+        os << "</div>";
+    }
+}
+
+HTMLOutputterString::HTMLOutputterString(ostream &os)
+    : HTMLOutputter(),
+      os(os)
+{
+}
+
+void HTMLOutputterString::AddString(const string &s)
+{
+    os << s;
+}
+
+void HTMLOutputterString::AddHTMLNodeBegin(const string &name,
+                                           const vector< pair<string,string> > & attributes,
+                                           bool empty_node)
+{
+    os <<  "<" << name;
+    if (!attributes.empty())
+    {
+        for (auto attr = attributes.begin();
+             attr != attributes.end(); ++ attr)
+        {
+            os <<  " " << attr->first << "=\"" << attr->second << "\"";
+        }
+    }
+    if (empty_node)
+        os <<  "/";
+    os <<  ">";
+}
+
+void HTMLOutputterString::AddHTMLNodeEnd(const string &name)
+{
+    os <<  "</" << name << ">";
+    if (name == "p") os << endl << endl;
+    if (name == "li") os << endl;
+    if (name == "ul") os << endl;
+    if (name == "blockquote") os << endl;
+}
+void HTMLOutputterString::AddWikiLink(const string &wikiname,
+                                      const string &text)
+{
+    os <<  "<a href=\"./" << wikiname << "\">" << text << "</a>";
+}
+
+void Wiki::LoadDPLEntries(vector<WikiEntryPtr> & entries,
+                          const string &category,
+                          const string &order,
+                          const string &pattern,
+                          const string &count)
+{
+    wikidb->LoadDPLEntries(entries, category, order, pattern, count);
+}
+
+
+void HTMLOutputterWikiString::AddDPLList(const string &category,
+                                         const string &order,
+                                         const string &pattern,
+                                         const string &count)
+{
+    vector<WikiEntryPtr> entries;
+
+    wiki->LoadDPLEntries(entries, category, order, pattern, count);
+
+    if (!entries.empty())
+    {
+        AddString("<ul>");
+        for (auto wikientry = entries.begin(); wikientry != entries.end(); ++wikientry)
+        {
+            AddString("<li><a href=\"./");
+            AddString(NormalizeWikiNameToFilename((*wikientry)->wikiname));
+            AddString("\">");
+            AddString((*wikientry)->wikiname);
+            AddString("</a>\n");
+        }
+        AddString("</ul>");
+    }
+}
+                                      
+
+void HTMLOutputterWikiString::AddWikiLink(const string &wikiname,
+                                          const string &text)
+{
+    const string name(NormalizeWikiName(wikiname));
+    const string linktarget(NormalizeWikiNameToFilename(name));
+
+    string imagename;
+
+    if (StartsWithImage(wikiname, imagename))
+    {
+        wiki->GetImageHTML(os, thisWikiName, wikiname, imagename, text);
+    }
+    else
+    {
+        if (debug_output)
+            cout << "Searching for wiki link " << name << endl;;
+
+        if (wiki->Exists(name))
+        {
+            os <<  "<a href=\"./" << linktarget << "\">" << text << "</a>";
+        }
+        else
+        {
+            os << "<cite>" << text << "</cite>";
+        }
+    }
+}
+
+HTMLOutputterString::~HTMLOutputterString()
+{
+}
+
+
+HTMLOutputterOutboundLinks::HTMLOutputterOutboundLinks()
+    : HTMLOutputter(), wikiLinks()
+{
+}
+
+void HTMLOutputterOutboundLinks::AddWikiLink(const string &wikiname, const string & /* text */)
+{
+    if (std::find(wikiLinks.begin(), wikiLinks.end(), wikiname) == wikiLinks.end())
+    {
+        wikiLinks.push_back(wikiname);
+    }
+
+}
+
+
+
+
+
+
+int Wiki::ScanImages(const char *path)
+{
+    int imagecount;
+    if (debug_output)
+        cout << "Searching " << path << endl;
+
+    FileFind(path,
+             [this, &imagecount](fs::directory_iterator dir_iter)
+             {
+                 string path(dir_iter->path().string());
+                 size_t pos = path.rfind('.');
+                 if (pos != string::npos)
+                 {
+                     if (!strcasecmp(path.c_str() + pos, ".jpg"))
+                     {
+                         ++imagecount;
+                         this->LoadJPEGData(path);
+                     }
+                     else if (!strcasecmp(path.c_str() + pos, ".png"))
+                     {
+                         ++imagecount;
+                         this->LoadPNGData(path);
+                     }
+                 }
+             }
+        );
+    return imagecount;
+}
+
+
+
+
+
+
+// const char *staging_area = "/home/danlyke/websites/flutterby.net/html_staging/";
+// const char *output_area = "/home/danlyke/websites/flutterby.net/public_html_static/";
+// const char *input_area = "/home/danlyke/websites/flutterby.net/code/mvs/";
+
+
+void Wiki::SetInputDirectory(string input_directory)
+{
+    input_area = input_directory;
+}
+
+void Wiki::SetStagingDirectory(string staging_directory)
+{
+    staging_area = staging_directory;
+}
+
+void Wiki::SetOutputDirectory(string output_directory)
+{
+    output_area = output_directory;
+}
+
+void Wiki::SetGoogleMapsAPIKey(string google_maps_api_key)
+{
+    this->google_maps_api_key = google_maps_api_key;
+}
+
+
+void Wiki::DoEverything()
+{
+    wikidb->NukeDatabase();
+    wikidb->BeginTransaction();
+    ScanImages(output_area);
+    ScanWikiFilesForLinks(input_area, staging_area);
+    ScanWikiFiles(input_area, staging_area);
+    RebuildDirtyFiles(staging_area);
+    wikidb->EndTransaction();
+    CopyChangedFiles(staging_area, output_area);
+}
+
+void Wiki::ScanWikiFiles()
+{
+    wikidb->BeginTransaction();
+    ScanWikiFilesForLinks(input_area, staging_area);
+    wikidb->EndTransaction();
+}
+
+void Wiki::DoWikiFiles()
+{
+    wikidb->BeginTransaction();
+    ScanWikiFilesForLinks(input_area, staging_area);
+    ScanWikiFiles(input_area, staging_area);
+    CopyChangedFiles(staging_area, output_area);
+    wikidb->EndTransaction();
+}
+void Wiki::GetWikiFiles()
+{
+    FileFind(input_area,
+             [](fs::directory_iterator dir_iter)
+             {
+                 if (dir_iter->path().filename().extension() == dotWiki)
+                 {
+                     cout << dir_iter->path().stem().string() << endl;
+                 }
+             });
+}
+
+void Wiki::WriteWikiFile(string target_file)
+{
+    string outputpath(input_area);
+    string wikiname(NormalizeWikiName(target_file));
+    outputpath +=  wikiname + dotWiki;
+    unsigned char buffer[1024];
+    FILE *outputfile = fopen(outputpath.c_str(), "w");
+    if (!outputfile)
+        return;
+
+    size_t len;
+
+    while (0 != (len = fread(buffer, 1, sizeof(buffer), stdin)))
+    {
+        fwrite(buffer, 1, len, outputfile);
+    }
+    fclose(outputfile);
+    
+
+    WikiEntryPtr entry;
+    if (wikidb->LoadWikiEntry(entry, wikiname))
+    {
+        entry->needsContentRebuild = true;
+        wikidb->WriteWikiEntry(entry);
+    }
+    else
+    {
+        entry = WikiEntryPtr(FBYNEW(WikiEntry));
+        entry->wikiname = wikiname;
+        entry->inputname = outputpath;
+        entry->needsContentRebuild = true;
+        entry->needsExternalRebuild = false;
+        wikidb->WriteWikiEntry(entry);
+    }
+    DoDirtyFiles();
+}
+Regex regexStartsWithYYYYMMDD("^(\\d{4})\\-(\\d{2})\\-(\\d{2})");
+
+void Wiki::WriteImageFile(string target_file) 
+{
+    string imagefile(target_file);
+    string localdir;
+    string targetdir(output_area);
+    targetdir += "files/images/";
+
+    RegexMatch match;
+    if (regexStartsWithYYYYMMDD.Match(imagefile, match))
+    {
+        targetdir += match.Match(1);
+        mkdir(targetdir.c_str(), 0755);
+        targetdir += "/" + match.Match(2);
+        mkdir(targetdir.c_str(), 0755);
+        targetdir += "/" + match.Match(3);
+        mkdir(targetdir.c_str(), 0755);
+    }
+    else
+    {
+        time_t now(time(nullptr));
+        struct tm *lt = localtime(&now);
+        char timebuf[32];
+
+        strftime(timebuf, sizeof(timebuf), "%y", lt);
+        targetdir += timebuf;
+        mkdir(targetdir.c_str(), 0755);
+        strftime(timebuf, sizeof(timebuf), "/%m", lt);
+        targetdir += timebuf;
+        mkdir(targetdir.c_str(), 0755);
+        strftime(timebuf, sizeof(timebuf), "/%d", lt);
+        targetdir += timebuf;
+        mkdir(targetdir.c_str(), 0755);
+    }
+    targetdir += "/";
+    string targetfile(targetdir + imagefile);
+
+    FILE *target = fopen(targetfile.c_str(), "wb");
+    size_t buflen = 16384;
+    unsigned char * buffer = new unsigned char[buflen];
+    size_t len;
+    while (0 != (len = fread(buffer, 1, buflen, stdin)))
+    {
+        fwrite(buffer, 1, len, target);
+    }
+    delete[] buffer;
+    fclose(target);
+
+    LoadJPEGData(targetfile);
+    CreateThumbnail(targetdir, imagefile, 160);
+    CreateThumbnail(targetdir, imagefile, 640);
+    CreateThumbnail(targetdir, imagefile, 1024);
+
+    string upload_wiki("Status Uploaded Images");
+    string upload_references(input_area + "/" + upload_wiki + ".wiki");
+    FILE *uploaded = fopen(upload_references.c_str(), "a");
+    string wikiname("Image:" + ImageNameFromImageFileName(imagefile));
+    fprintf(uploaded, "[[%s]]\n", wikiname.c_str());
+    fclose(uploaded);
+    DoWikiFile(wikiname);
+    DoWikiFile(upload_wiki);
+}
+
+
+void Wiki::ReadWikiFile(string target_file) 
+{
+    string wikifile(target_file);
+    string filename(input_area + wikifile + dotWiki);
+    FILE *target = fopen(filename.c_str(), "rb");
+    size_t buflen = 16384;
+    unsigned char * buffer = new unsigned char[buflen];
+    size_t len;
+    while (0 != (len = fread(buffer, 1, buflen, target)))
+    {
+        fwrite(buffer, 1, len, stdout);
+    }
+    delete[] buffer;
+    fclose(target);
+}
+
+void Wiki::RebuildDetached()
+{
+    DoEverything();
+}
+
+void Wiki::ImportKML(string /* target_file */) { assert(0); }
+
+void Wiki::DoDirtyFiles()
+{
+    wikidb->BeginTransaction();
+    RebuildDirtyFiles(staging_area);
+    wikidb->EndTransaction();
+    CopyChangedFiles(staging_area, output_area);
+}
+
+void Wiki::DoChangedFiles()
+{
+    wikidb->BeginTransaction();
+    ScanWikiFiles(input_area, staging_area);
+    RebuildDirtyFiles(staging_area);
+    wikidb->EndTransaction();
+    CopyChangedFiles(staging_area, output_area);
+}
+
+void Wiki::ScanImages()
+{
+    wikidb->BeginTransaction();
+    ScanImages(output_area);
+    wikidb->EndTransaction();
+}
+
+void Wiki::VerifyWikiLink( string target_file )
+{
+    string wikiname("Test Wiki Name");
+    stringstream os;
+    HTMLOutputterWikiString outputter(os, WikiPtr(this), wikiname);
+    outputter.AddWikiLink(target_file, target_file);
+    cout << os.str() << endl;
+}
+
+
+void Wiki::MarkContentDirty( string target_file )
+{
+    WikiEntryPtr entry;
+    if (wikidb->LoadWikiEntry(entry,target_file))
+    {
+        entry->needsContentRebuild = true;
+        wikidb->WriteWikiEntry(entry);
+    }
+    else
+    {
+        cerr << "Unable to find entry for '" << target_file << "'" << endl;
+    }
+}
+void Wiki::MarkReferencesDirty( string target_file )
+{
+    WikiEntryPtr entry;
+    if (wikidb->LoadWikiEntry(entry, target_file))
+    {
+        entry->needsExternalRebuild = true;
+        wikidb->WriteWikiEntry(entry);
+    }
+    else
+    {
+        cerr << "Unable to find entry for '" << target_file << "'" << endl;
+    }
+}
+
+void Wiki::ShowWikiStatus( string target_file )
+{
+    WikiEntryPtr entry;
+    if (wikidb->LoadWikiEntry(entry, target_file))
+    {
+        cout << "wikiname: " << entry->wikiname << endl;
+        cout << "inputname: " << entry->inputname << endl;
+        cout << "needsContentRebuild: " << entry->needsContentRebuild << endl;
+        cout << "needsExternalRebuild: " << entry->needsExternalRebuild << endl;
+
+        string thisWikiName(entry->wikiname);
+
+        cout << "From links:" << endl;
+        {
+            vector<WikiEntryReferencePtr> wikiEntryReferences;
+            wikidb->LoadWikiReferencesFrom(wikiEntryReferences, thisWikiName);
+
+            vector<string> currentLinks;
+            for (auto wikiEntryReference = wikiEntryReferences.begin();
+                 wikiEntryReference != wikiEntryReferences.end();
+                 ++wikiEntryReference)
+            {
+                cout << "   " << (*wikiEntryReference)->to_wikiname << endl;
+            }
+        }
+        cout << "To links:" << endl;
+        {
+            vector<WikiEntryReferencePtr> wikiEntryReferences;
+            wikidb->LoadWikiReferencesTo(wikiEntryReferences, thisWikiName);
+
+            vector<string> currentLinks;
+            for (auto wikiEntryReference = wikiEntryReferences.begin();
+                 wikiEntryReference != wikiEntryReferences.end();
+                 ++wikiEntryReference)
+            {
+                cout << "   " << (*wikiEntryReference)->to_wikiname << endl;
+            }
+        }
+
+        
+    }
+    else
+    {
+        cout << "Not Found: '" << target_file << "'" << endl;
+    }
+
+}
+
+
+void Wiki::LoadEXIFData(string target_file )
+{
+    LoadJPEGData(target_file);
+}
+void Wiki::ScanDPLFiles()
+{
+    wikidb->BeginTransaction();
+    vector<WikiEntryPtr> wikientries;
+    string sql("SELECT * FROM WikiEntry");
+    wikidb->LoadAllWikiEntries(wikientries);
+    for(auto wikientry = wikientries.begin();
+        wikientry != wikientries.end();
+        ++wikientry)
+    {
+        string s(LoadWikiText(*wikientry));
+        if (s.find("<dpl") != string::npos)
+        {
+            (*wikientry)->needsContentRebuild = true;
+            wikidb->WriteWikiEntry(*wikientry);
+        }
+    }
+
+    RebuildDirtyFiles(staging_area);
+    wikidb->EndTransaction();
+}

@@ -1,0 +1,2 @@
+Several entities: &lt; &gt; &apos; &quot; &amp; &#x40; &#65; and some
+characters in plain text: < > & " '.
