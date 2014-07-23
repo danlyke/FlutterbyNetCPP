@@ -1,0 +1,1 @@
+INSERT INTO WikiEntry(wikiname, inputname, needsContentRebuild, needsExternalRebuild) VALUES ("Main_Page", "Main Page.wiki", 0, 0);
