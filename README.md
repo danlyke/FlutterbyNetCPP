@@ -14,13 +14,12 @@ wiki-internal links, etc), with HTML.
 
 In ~/.fby/config.ini put
 
-  input_directory = /path/to/your/.wiki/files
-
-  html_directory = /path/to/output/html
-
-  staging_directory = /a/staging/directory/for/intermediate/html
-
-  google_maps_api_key = whatitsays
+```
+input_directory = /path/to/your/.wiki/files
+html_directory = /path/to/output/html
+staging_directory = /a/staging/directory/for/intermediate/html
+google_maps_api_key = whatitsays
+```
 
 Run "fby --doeverything", this will scan the HTML directory for
 images, and generate the output HTML.
@@ -41,8 +40,7 @@ I had a couple of goals with this system:
   that I really wanted to be developing new personal code in a typed
   language.
 
-* I had a Perl system that was built on top of the "Markdown"-ish
-  (that wasn't yet a thing when I originally built it) parser that
+* I had a Perl system that was built on top of the parser that
   runs Flutterby.com. There were operations that weren't as fast as
   they should have been, and I knew that I some structural performance
   issues that it'd be nice to get fixed. I didn't realize how much
@@ -82,12 +80,24 @@ Todo
 
 ### ORM
 
-fbydb & sqlextractor - 
+Object models are created in a mix of C++ and SQL.
+
+`sqlextractor` parses `wikiobjects.h` into `sqldefinitions.{cpp,h}` and `sqldefinitions.sql`
+
+The `fbydb` stuff provides a mapping that queries and saves those
+objects, wrapped on top of SQLite and PostgreSQL.
 
 ### Parsers
 
+One built on flex, one built on Perl style regexes.
+
 ### Mapping
 
-OpenLayers
+OpenLayers talking to Google Maps and a locally hosted Open Street Map
+tile cache.
+
+To be done here is a little more on pulling some combination of status
+updates and image metadata into maps.
+
 
 
