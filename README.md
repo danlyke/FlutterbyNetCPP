@@ -23,7 +23,7 @@ I had a couple of goals with this system:
   was also (and still am) rebuilding too many files at a whack.
 
 * I wanted to get comfortable with some of the C++11
-  features. Hellooooo, "auto"!
+  features. Hellooooo, "auto" and lambdas!
 
 There are vestiges of two early decisions still in this code:
 
@@ -32,11 +32,12 @@ move code between Microsoft Managed .NET "C++" and regular C++, for a
 code base that was originally C# (Porting a C# app to be
 iOS/Windows/OSX), so there were some kludges for "property"
 attributes, typing for "^" vs "*" pointer dereferences, strings,
-dynamic arrays.
+dynamic arrays. I'm trying to rip that out and just go straight C++.
 
 I also started doing a Lex/Flex based parser, and then realized that
 for text processing just copying the regexes that the Perl system used
-let me better control parsing element priority.
+let me better control parsing element priority. But those vestiges
+remain.
 
 Todo
 
@@ -46,6 +47,9 @@ Todo
   further. As I try to hone my C++ chops, I'm dropping back into Perl
   more often than I'd like because I can't just "-lfby", or use
   "sqlextractor" independently.
+
+* Once the app is split from the library, there's a lot of test
+  framework that needs to be built for both. As time allows.
 
 === Philosophy & Submodules ===
 
