@@ -77,8 +77,8 @@ Regex regexJheadAttribute("JHead Attribute",
 // "hostaddr = '127.0.0.1' port = '' dbname = 'fwaggle' user = 'fwaggle' password = 'password' connect_timeout = '10'"
 
 Wiki::Wiki() : BaseObj(BASEOBJINIT(Wiki)),
-               wikidb(FBYNEW WikiDB(FBYNEW FbySQLiteDB("../var/fby.sqlite3"))),
-//               wikidb(FBYNEW WikiDB(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke'"))),
+//               wikidb(FBYNEW WikiDB(FBYNEW FbySQLiteDB("../var/fby.sqlite3"))),
+               wikidb(FBYNEW WikiDB(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke'"))),
                staging_area(),
                output_area(),
                input_area(),
@@ -335,7 +335,9 @@ void Wiki::LoadJPEGData(const std::string &imagepath)
 
     if (wikidb->LoadImageInstance(imageInstance, imagepath))
     {
-        cout << "Comparing " << lastWriteTime << " to " << imageInstance->mtime << endl;
+        if (debug_output)
+            cout << "Comparing " << lastWriteTime << " to " << imageInstance->mtime << endl;
+
         if (lastWriteTime <= imageInstance->mtime)
         {
             if (debug_output)
