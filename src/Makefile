@@ -10,11 +10,11 @@ vpath %.cpp .
 CC=g++
 CFLAGS= -std=c++11 -Wall -Wextra -Weffc++ -g -fPIC -I /usr/include/postgresql
 LDFLAGS= -L. -lfby -lsqlite3 -lpq -lboost_filesystem -lboost_system -lgdbm -lpcre -lboost_iostreams  -l boost_program_options
-LIBSOURCES=fbystd.cpp parsertokens.cpp textparse.yy.cpp stringutil.cpp parsetree.cpp fbyregex.cpp fby_core_unix_array.cpp fby_core_unix_helpers.cpp fby_core_unix.cpp fbydb.cpp fbydb_sqlite3.cpp fbydb_postgresql.cpp regexparser.cpp treebuilder.cpp wikistrings.cpp
+LIBSOURCES=fbystd.cpp parsertokens.cpp textparse.yy.cpp stringutil.cpp parsetree.cpp fbyregex.cpp fby_core_unix_array.cpp fby_core_unix_helpers.cpp fby_core_unix.cpp fbydb.cpp fbydb_sqlite3.cpp fbydb_postgresql.cpp regexparser.cpp treebuilder.cpp wikistrings.cpp netserver.cpp
 
 SOURCES=sqldefinitions.cpp wiki.cpp wikidb.cpp wikiobjects.cpp wikinode.cpp wikivideoflash.cpp wikistatusupdate.cpp  wikiopenlayers.cpp wikidpl.cpp openlayerstemplate.cpp
 
-EXESOURCES=test_file.cpp test_lambda.cpp test_flex.cpp test_tester.cpp test_reset.cpp test_regex.cpp test_gdbm.cpp test_removecrs.cpp test_readstdout.cpp test_sqlite.cpp sqlextractor.cpp test_strftime.cpp test_findimageinfo.cpp  test_iter.cpp test_wikistring.cpp  fixedstringextractor.cpp test_boost_options.cpp
+EXESOURCES=test_file.cpp test_lambda.cpp test_flex.cpp test_tester.cpp test_reset.cpp test_regex.cpp test_gdbm.cpp test_removecrs.cpp test_readstdout.cpp test_sqlite.cpp sqlextractor.cpp test_strftime.cpp test_findimageinfo.cpp  test_iter.cpp test_wikistring.cpp  fixedstringextractor.cpp test_boost_options.cpp test_netserver.cpp
 # copychangedfiles.cpp
 # test_subst.cpp
 
