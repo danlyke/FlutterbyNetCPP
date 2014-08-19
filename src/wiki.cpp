@@ -43,7 +43,7 @@ using namespace boost::iostreams ;
 namespace fs = boost::filesystem;
 
 string dotWiki(".wiki");
-bool debug_output(false);
+bool debug_output(true);
 
 #include "wikidb.h"
 
@@ -537,9 +537,9 @@ void Wiki::ScanWikiFiles(const char *inputDir, const char *stagingDir)
                          }
                          if (dirty)
                          {
-//                             cout << "Marking " << wikiname
-//                                  << " dirty, would write to " << destname << endl;
-//                             cout << "   " << (stagingFiles.end() != source ? "time" : "missing dest") << endl;
+                             cout << "Marking " << wikiname
+                                  << " dirty, would write to " << destname << endl;
+                             cout << "   " << (stagingFiles.end() != source ? "time" : "missing dest") << endl;
                              entry->needsContentRebuild = true;
                              wikidb->WriteWikiEntry(entry);
                          }
@@ -768,11 +768,13 @@ void Wiki::RebuildDirtyFiles(const char *outputdir)
             ParseWikiBufferToOutput((*wikientry)->wikiname,
                                     s.data(), s.length(),
                                     outputdir);
-            
-            (*wikientry)->needsContentRebuild = false;
-            (*wikientry)->needsExternalRebuild = false;
-            wikidb->WriteWikiEntry(*wikientry);
         }
+
+        if (debug_output)
+            cout << "Marking '" << (*wikientry)->wikiname << "' clean" << endl;
+        (*wikientry)->needsContentRebuild = false;
+        (*wikientry)->needsExternalRebuild = false;
+        wikidb->WriteWikiEntry(*wikientry);
     }
 }
 
@@ -1408,7 +1410,7 @@ void Wiki::ScanWikiFiles()
 void Wiki::DoWikiFiles()
 {
     wikidb->BeginTransaction();
-    ScanWikiFilesForLinks(input_area, staging_area);
+//    ScanWikiFilesForLinks(input_area, staging_area);
     ScanWikiFiles(input_area, staging_area);
     CopyChangedFiles(staging_area, output_area);
     wikidb->EndTransaction();

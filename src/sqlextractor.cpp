@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <boost/algorithm/string.hpp>
 #include <string>
 #include <stdio.h>
 
@@ -93,9 +94,10 @@ void PrintSQLDefinition(ostream &ossql, ostream &oscpp, const string &currentCla
 
     oscpp << "void " << currentClass << "::AssignToMember( const std::string &memberName, const std::string &value)" << endl;
     oscpp << "{" << endl;
+    oscpp << "    std::string ucMemberName(boost::to_upper_copy(memberName));\n";
     for (vector<MemberDescription>::iterator member = members.begin(); member != members.end(); ++member)
     {
-        oscpp << "    if (boost::algorithm::iequals(memberName,\"" << member->name << "\")) { " << member->name << " = ";
+        oscpp << "    if (ucMemberName == \"" << boost::to_upper_copy(member->name) << "\") { " << member->name << " = ";
         map<string,string>::iterator mapping = textToMember.find(member->ctype);
         if (mapping != textToMember.end())
         {
@@ -113,12 +115,13 @@ void PrintSQLDefinition(ostream &ossql, ostream &oscpp, const string &currentCla
     oscpp << "}" << endl;
     oscpp << endl;
 
-    oscpp << "std::string " << currentClass << "::AssignFromMember( const std::string &memberName)" << endl;
-    oscpp << "{" << endl;
+    oscpp << "std::string " << currentClass << "::AssignFromMember( const std::string &memberName )" << endl;
+    oscpp << "{" << endl; 
+    oscpp << "    std::string ucMemberName(boost::to_upper_copy(memberName));\n";
     oscpp << "    string value;" << endl;
     for (vector<MemberDescription>::iterator member = members.begin(); member != members.end(); ++member)
     {
-        oscpp << "    if (boost::algorithm::iequals(memberName, \"" << member->name << "\")) { value = ";
+        oscpp << "    if (ucMemberName == \"" << boost::to_upper_copy(member->name) << "\") { value = ";
         map<string,string>::iterator mapping = memberToText.find(member->ctype);
         if (mapping != textToMember.end())
         {
