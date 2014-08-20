@@ -14,6 +14,7 @@ int main(int argc, char **argv)
                                  string s("Got ");
                                  s += string(data, length);
                                  s += "\n";
+                                 cout << s;
                                  socket->write(s);
                              });
                      })->listen(5000);

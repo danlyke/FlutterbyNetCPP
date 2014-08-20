@@ -29,7 +29,7 @@ static void catchsignal_TERMINT(int sig)
 	termsig = sig;
 }
 
-static void catchsignal_HUP(int sig)
+static void catchsignal_HUP(int)
 {
 	got_sighup = 1;
 }
@@ -38,7 +38,7 @@ static void catchsignal_HUP(int sig)
 struct SignalCatch
 {
     int sig;
-    void (*signal_handler)(int signal);
+    void (*handler)(int signal);
 } signal_handlers[] =
 {
     { SIGPIPE, SIG_IGN },
@@ -50,16 +50,18 @@ struct SignalCatch
 struct {
     struct sigaction new_signal_action;
     struct sigaction old_signal_action;
-}  signal_actions[sizeof(signal_actions)/sizeof(*signal_actions)]
+}  signal_actions[sizeof(signal_handlers)/sizeof(*signal_handlers)];
 
 
 void catchsignals()
 {
-    for (int i = 0; i < sizeof(signal_handlers) / sizeof(signal_handlers[0]); ++i)
+    for (size_t i = 0; i < sizeof(signal_handlers) / sizeof(signal_handlers[0]); ++i)
     {
-        memset(&signal_actions[i].new_signal_action,0,sizeof(signal_handlers[i].new_signal_action));
+        memset(&signal_actions[i].new_signal_action,0,
+               sizeof(signal_actions[i].new_signal_action));
         sigemptyset(&signal_actions[i].new_signal_action.sa_mask);
-        signal_actions[i].new_signal_action.sa_handler = signal_handlers[i].handler;
+        signal_actions[i].new_signal_action.sa_handler = 
+            signal_handlers[i].handler;
         sigaction(signal_handlers[i].sig, &signal_actions[i].new_signal_action, 
                   &signal_actions[i].old_signal_action);
     }
@@ -67,23 +69,102 @@ void catchsignals()
 
 void releasesignals()
 {
-    for (int i = 0; i < sizeof(signal_handlers) / sizeof(signal_handlers[0]); ++i)
+    for (size_t i = 0; 
+         i < sizeof(signal_handlers) / sizeof(signal_handlers[0]); ++i)
     {
         sigaction(signal_handlers[i].sig, &signal_actions[i].old_signal_action, 
                   &signal_actions[i].new_signal_action);
     }
 }
 
+ServerPtr Server::listen(int socket_num)
+{
+    int socket_opt;
+    int resultCode;
+    struct addrinfo          ask,*res = NULL;
+    memset(&ask, 0, sizeof(ask));
+    ask.ai_flags = AI_PASSIVE;
+    ask.ai_socktype = SOCK_STREAM;
+    char socket_ch[16];
+    snprintf(socket_ch, sizeof(socket_ch), "%d", socket_num);
+    
+    if (0 != (resultCode = getaddrinfo(NULL, socket_ch, &ask, &res))) 
+    {
+        fprintf(stderr,"getaddrinfo (ipv4): %s\n",gai_strerror(resultCode));
+        exit(1);
+    }
+
+    fprintf(stderr, "About to create socket for %d %d %d\n",res->ai_family, res->ai_socktype, res->ai_protocol);
+    fprintf(stderr, "Compare to %d %d %d\n",AF_INET, SOCK_STREAM, 0);
+
+    fd = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    socket_opt = 1; 
+   setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&socket_opt,sizeof(socket_opt));
+    fcntl(fd,F_SETFL,O_NONBLOCK);
+    struct sockaddr_storage  ss;
+    memcpy(&ss,res->ai_addr,res->ai_addrlen);
+    
+    if (-1 == bind(fd, (struct sockaddr*)&ss, res->ai_addrlen)) 
+    {
+        perror("bind");
+        exit(1);
+    }
+    
+    if (-1 == ::listen(fd, 8)) 
+    {
+        perror("listen");
+        exit(1);
+    }
+    
+    return ServerPtr(this);
+}
+
+void Socket::write(char const *data, size_t size)
+{
+    fprintf(stderr, "Writing %*s to %d\n", (int)size, data, fd);
+    ssize_t bytes_written = ::write(fd, data, size);
+
+    fprintf(stderr, "Wrote %d\n", (int)bytes_writted);
+    if (bytes_written > 0)
+    { 
+        while (size > 0)
+        {
+            size -= bytes_written;
+            data += bytes_written;
+            bytes_written = ::write(fd, data, size);
+        }
+    }
+    else
+    {
+        perror("Error writing");
+    }
+}
+
+ServerPtr Net::createServer(CreateServerFunction f)
+{
+    ServerPtr server(new Server(this, f));
+    servers.push_back(server);
+    return server;
+};
+
+
 void
 Net::loop()
 {
-	int current_connections = 0;
 	time_t now;
 	struct timeval      tv;
-	int                 max_fd,length;
+	int                 max_fd;
 	fd_set              read_fds,write_fds;
-	for (;servers.size() && sockets.size() && !termsig;) 
+
+    fprintf(stderr, "Beginning of loop\n");
+    fprintf(stderr, "Server size is %d sockets size is %d\n",
+            (int)(servers.size()), (int)(sockets.size()));
+    termsig = 0;
+    catchsignals();
+
+	for (;(servers.size() || sockets.size()) && !termsig;) 
 	{
+        fprintf(stderr, "Beginning of event loop\n");
 		FD_ZERO(&read_fds);
 		FD_ZERO(&write_fds);
 
@@ -122,8 +203,8 @@ Net::loop()
         {
             if (FD_ISSET((*server)->fd,&read_fds)) 
             {
-                int fd = accept(listensocket, NULL, NULL);
-				if (-1 == socket->fd)
+                int fd = accept((*server)->fd, NULL, NULL);
+				if (-1 == fd)
 				{
 					if (EAGAIN != errno)
 						perror("accept");
@@ -134,7 +215,8 @@ Net::loop()
 					fcntl(fd,F_SETFL,O_NONBLOCK);
                     (*server)->create_func(socket);
                     sockets.push_back(socket);
-					fprintf(stderr,"%03d: new request (%d)\n", fd);
+					fprintf(stderr,"%03d: new request (%d)\n",
+                            (*server)->fd, fd);
 				}
 			}
 		}
@@ -143,20 +225,44 @@ Net::loop()
         {
             if (FD_ISSET((*socket)->fd, &read_fds))
             {
-                size_t len = read(buffer, sizeof(buffer), (*socket)->fd);
+                char buffer[65536];
+                size_t len = read((*socket)->fd, buffer, sizeof(buffer));
                 if (len > 0)
                 {
-                    
+                    buffer[len]  = 0;
+                    fprintf(stderr, "Read %d bytes from %d '%*s'\n", (int)len, (*socket)->fd, (int)len, buffer);
+                    (*socket)->on_data(buffer, len);
                 }
                 else
                 {
+                    (*socket)->fd = -1;
                     fprintf(stderr,"%03d: read of %d bytes\n", (*socket)->fd, (int)len);
                     perror("Short read");
+                }
+            }
+
+            for (size_t i = 0; i < sockets.size(); ++i)
+            {
+                if (sockets[i]->fd < 0)
+                {
+                    sockets.erase(sockets.begin() + i);
+                    --i;
+                }
+            }
+
+
+            for (size_t i = 0; i < sockets.size(); ++i)
+            {
+                if (servers[i]->fd < 0)
+                {
+                    servers.erase(servers.begin() + i);
+                    --i;
                 }
             }
         }
 
         /* DO THE WRITE, AND THE CLOSE */
 	}
+
     releasesignals();
 }

@@ -28,7 +28,7 @@ private:
 
 
 public:
-    Socket(NetPtr net, int fd);
+    Socket(Net* net, int fd);
     void onData(OnDataFunction on_data)
     {
         this->on_data = on_data;
@@ -73,11 +73,7 @@ public:
 
 Net() : BaseObj(BASEOBJINIT(Net)), servers(), sockets() {}
 public:
-    ServerPtr createServer(CreateServerFunction f)
-    {
-        return ServerPtr(new Server(this, f));
-    };
-
+    ServerPtr createServer(CreateServerFunction f);
     void loop();
 };
 
@@ -85,9 +81,9 @@ public:
 
 
 
-inline Socket::Socket(NetPtr net, int fd)
+inline Socket::Socket(Net* net, int fd)
 : BaseObj(BASEOBJINIT(Socket)),
-   fd(fd), on_data(), net()   
+   fd(fd), on_data(), net(net)
 {
 }
 
