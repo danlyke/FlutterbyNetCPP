@@ -11,8 +11,13 @@ FBYCLASSPTR(Socket);
 FBYCLASSPTR(Server);
 FBYCLASSPTR(Net);
 
+FBYCLASSPTR(HTTPRequest);
+FBYCLASSPTR(HTTPResponse);
+
 typedef std::function<void (const char *data, size_t length)> OnDataFunction;
+typedef std::function<void ()> OnDrainFunction;
 typedef std::function<void (SocketPtr socket)> CreateServerFunction;
+typedef std::function<void (HTTPRequestPtr request, HTTPResponsePtr response)> RespondToHTTPRequestFunction;
 
 FBYCLASS(Socket) : public ::FbyHelpers::BaseObj
 {
@@ -24,9 +29,10 @@ private:
     
     int fd;
     OnDataFunction on_data;
+    OnDrainFunction on_drain;
     Net * net;
-
-
+    std::string queuedWrite;
+    bool emitDrain;
 public:
     Socket(Net* net, int fd);
     void onData(OnDataFunction on_data)
@@ -35,14 +41,14 @@ public:
     }
 
 
-    void write(const char *data, size_t length);
-    void write(const std::string &s)
+    bool write(const char *data, size_t length);
+    bool write(const std::string &s)
     {
-        write(s.data(), s.length());
+        return write(s.data(), s.length());
     }
-    void write(const char *data)
+    bool write(const char *data)
     {
-        write(data, strlen(data));
+        return write(data, strlen(data));
     }
 };
 
@@ -79,11 +85,39 @@ public:
 
 
 
+FBYCCLASS(HTTPRequest) : public ::FbyHelpers::BaseObj
+{
+public:
+    int readState;
+    string method;
+    string path;
+    string protocol;
+    std::map< std::string, std::string > headers;
+    void ReadData(const char *data, size_t length);
+};
+
+
+FBYCLASS(HTTPServer) : public Server
+{
+public:
+    HTTPServer(Net *net) {
+    }
+};
+
+
+inline HTTPServer::HTTPServer(Net *net, RespondToHTTPRequestFunction f)
+                  : Server(net), 
+{
+}
 
 
 inline Socket::Socket(Net* net, int fd)
 : BaseObj(BASEOBJINIT(Socket)),
-   fd(fd), on_data(), net(net)
+              fd(fd), 
+              on_data(), 
+              on_drain(),
+              net(net),
+              queuedWrite(), emitDrain(false)
 {
 }
 

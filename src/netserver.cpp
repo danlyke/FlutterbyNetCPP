@@ -119,25 +119,30 @@ ServerPtr Server::listen(int socket_num)
     return ServerPtr(this);
 }
 
-void Socket::write(char const *data, size_t size)
+bool Socket::write(char const *data, size_t size)
 {
     fprintf(stderr, "Writing %*s to %d\n", (int)size, data, fd);
+    bool wroteEverything(false);
     ssize_t bytes_written = ::write(fd, data, size);
 
-    fprintf(stderr, "Wrote %d\n", (int)bytes_writted);
+    fprintf(stderr, "Wrote %d\n", (int)bytes_written);
     if (bytes_written > 0)
     { 
-        while (size > 0)
+        if (bytes_written < (ssize_t)size)
         {
-            size -= bytes_written;
-            data += bytes_written;
-            bytes_written = ::write(fd, data, size);
+            queuedWrite = std::string(data+bytes_written, size - bytes_written);
+        }
+        else
+        {
+            writeEverything  = true;
+            emitDrain = true;
         }
     }
     else
     {
         perror("Error writing");
     }
+    return wroteEverything;
 }
 
 ServerPtr Net::createServer(CreateServerFunction f)
@@ -176,12 +181,14 @@ Net::loop()
             if ((*server)->fd > max_fd)
                 max_fd = (*server)->fd;
 		}
-
+        fprintf(stderr, "About to run through sockets: %d %d\n", sockets.size(), sockets.begin() == sockets.end());
         for (auto socket = sockets.begin(); socket != sockets.end(); ++socket)
         {
             FD_SET((*socket)->fd, &read_fds);
             if ((*socket)->fd > max_fd)
                 max_fd = (*socket)->fd;
+            if ((*socket)->queuedWrite.size())
+                FD_SET((*socket)->fd, &write_fds);
 		}
 
         /* CHECK FOR WRITES HERE! */
@@ -230,7 +237,7 @@ Net::loop()
                 if (len > 0)
                 {
                     buffer[len]  = 0;
-                    fprintf(stderr, "Read %d bytes from %d '%*s'\n", (int)len, (*socket)->fd, (int)len, buffer);
+                    fprintf(stderr, "Socket %lx Read %d bytes from %d '%*s'\n", (unsigned long)(&**socket), (int)len, (*socket)->fd, (int)len, buffer);
                     (*socket)->on_data(buffer, len);
                 }
                 else
@@ -240,29 +247,117 @@ Net::loop()
                     perror("Short read");
                 }
             }
-
-            for (size_t i = 0; i < sockets.size(); ++i)
+            if (FD_ISSET((*socket)->fd, &write_fds))
             {
-                if (sockets[i]->fd < 0)
+                size_t len = write((*socket)->fd,
+                                   (*socket)->queuedWrite.data(), (*socket)->queuedWrite.size());
+                if (len > 0)
                 {
-                    sockets.erase(sockets.begin() + i);
-                    --i;
+                    if (len < (*socket)->queuedWrite.size())
+                    {
+                        (*socket)->queuedWrite.erase(0, len);
+                    }
+                    else
+                    {
+                        (*socket)->emitDrain = true;
+                        (*socket)->queuedWrite.clear();
+                    }
                 }
             }
-
-
-            for (size_t i = 0; i < sockets.size(); ++i)
+            if ((*socket)->emitDrain)
             {
-                if (servers[i]->fd < 0)
+                if ((*socket)->on_drain)
                 {
-                    servers.erase(servers.begin() + i);
-                    --i;
+                    (*socket)->on_drain();
                 }
+                (*socket)->emitDrain = false;
             }
+
         }
 
+        for (ssize_t i = 0; i < sockets.size(); ++i)
+        {
+            if (sockets[i]->fd < 0)
+            {
+                fprintf(stderr, "Removing socket %d %d\n", i, sockets.size());
+                sockets.erase(sockets.begin() + i);
+                --i;
+                fprintf(stderr, "Removed socket %d %d\n", i, sockets.size());
+                fprintf(stderr, "Sockets begin vs end %d\n", sockets.begin() == sockets.end());
+            }
+        }
+        
+
+        for (ssize_t i = 0; i < sockets.size(); ++i)
+        {
+            if (servers[i]->fd < 0)
+            {
+                fprintf(stderr, "Removing server %i\n");
+                servers.erase(servers.begin() + i);
+                --i;
+            }
+        }
         /* DO THE WRITE, AND THE CLOSE */
 	}
 
     releasesignals();
+}
+
+
+
+void HTTPRequest::ReadData(const char *data, size_t length)
+{
+    while (length > 0)
+    {
+        switch (readState)
+        {
+        case 0: // GET/POST/etc
+        {
+            for (int i = 0; i < length && !isspace(data[i]); ++i)
+            {}
+            method += string(data, i);
+            if (i < length) readState = 1;
+
+            data += i;
+            length -= -i;
+
+            while (isspace(*data) && length > 0)
+            { data++; length-- };
+        }
+        break;
+        case 1: // Path
+        {
+            for (int i = 0; i < length && !isspace(data[i]); ++i)
+            {}
+            path += string(data, i);
+            if (i < length) readState = 2;
+
+            data += i;
+            length -= -i;
+
+            while (isspace(*data) && length > 0)
+            { data++; length-- };
+            
+        }
+        break;
+        case 2: // HTTP/1.1
+        {
+            for (int i = 0; i < length && data[i] != '\n'; ++i)
+            {}
+            protocol += string(data, i);
+            if (i < length) readState = 3;
+
+            data += i;
+            length -= -i;
+
+            if (('\n' == *data) && length > 0)
+            { data++; length-- };
+        }
+        break;
+        case 3:
+        {
+            
+        }
+        }
+    }
 }
