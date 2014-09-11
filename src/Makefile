@@ -18,7 +18,7 @@ EXESOURCES=test_file.cpp test_lambda.cpp test_flex.cpp test_tester.cpp test_rese
 # copychangedfiles.cpp
 # test_subst.cpp
 
-EXE2SOURCES= fby.cpp test_fbydb.cpp scaninputwikifiles.cpp scanimages.cpp parsewikifiletostaging.cpp test_regexparse.cpp parsewikifilesforlinks.cpp scanwikifilesforlinks.cpp rebuilddirtyfiles.cpp 
+EXE2SOURCES= fby.cpp fby_test.cpp test_fbydb.cpp scaninputwikifiles.cpp scanimages.cpp parsewikifiletostaging.cpp test_regexparse.cpp parsewikifilesforlinks.cpp scanwikifilesforlinks.cpp rebuilddirtyfiles.cpp 
 
 
 OUTPUTDIRECTORIES= ../obj ../bin
@@ -31,10 +31,29 @@ EXECUTABLE=$(patsubst %.cpp,../bin/%,$(EXESOURCES))
 EXE2OBJECTS=$(patsubst %.cpp,../obj/%.o,$(EXE2SOURCES))
 EXECUTABLE2=$(patsubst %.cpp,../bin/%,$(EXE2SOURCES))
 
+
+TEST_DIRECTORIES=../temp/html_staging/ ../temp/public_html/ ../temp/wiki
+
+
 all: $(EXECUTABLE) $(EXECUTABLE2) $(OUTPUTDIRECTORIES) ../var/fby.sqlite3
 	mkdir -p $(OUTPUTDIRECTORIES)
-	../bin/test_boost_options
+	mkdir -p $(TEST_DIRECTORIES)
+	../bin/fby_test -c ../t/config.ini --
 
+
+test: ../bin/fby_test
+	rm ../var/fby.sqlite3
+	sqlite3 ../var/fby.sqlite3 < sqldefinitions.sql
+	mkdir -p $(TEST_DIRECTORIES)
+	cp ../t/wiki/*.wiki ../temp/wiki
+	../bin/fby_test -c ../t/config.ini --getwikifiles
+	../bin/fby_test -c ../t/config.ini --scanwikifiles
+	echo 'Content dirty'
+	../bin/fby_test -c ../t/config.ini --getcontentdirty
+	echo 'Referenced dirty'
+	../bin/fby_test -c ../t/config.ini --getreferenceddirty
+	echo 'Scanning and rebuilding'
+	../bin/fby_test -c ../t/config.ini --rebuildoutputfiles
 
 #	mkdir -p $(HTMLSTAGING)
 #	../bin/wikistringtest
