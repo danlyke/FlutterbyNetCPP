@@ -6,6 +6,7 @@
 
 // class Net definition
 #include <functional>
+#include <map>
 
 FBYCLASSPTR(Socket);
 FBYCLASSPTR(Server);
@@ -85,13 +86,13 @@ public:
 
 
 
-FBYCCLASS(HTTPRequest) : public ::FbyHelpers::BaseObj
+FBYCLASS(HTTPRequest) : public ::FbyHelpers::BaseObj
 {
 public:
     int readState;
-    string method;
-    string path;
-    string protocol;
+    std::string method;
+    std::string path;
+    std::string protocol;
     std::map< std::string, std::string > headers;
     void ReadData(const char *data, size_t length);
 };
@@ -100,13 +101,12 @@ public:
 FBYCLASS(HTTPServer) : public Server
 {
 public:
-    HTTPServer(Net *net) {
-    }
+                     HTTPServer(Net *net, RespondToHTTPRequestFunction f);
 };
 
 
-inline HTTPServer::HTTPServer(Net *net, RespondToHTTPRequestFunction f)
-                  : Server(net), 
+inline HTTPServer::HTTPServer(Net *net, RespondToHTTPRequestFunction)
+                  : Server(net, [](SocketPtr) {})
 {
 }
 

@@ -19,6 +19,8 @@
 
 #include "fbynet.h"
 
+using namespace FbyHelpers;
+
 int termsig = 0;
 int got_sighup = 0;
 int listensocket;
@@ -134,7 +136,7 @@ bool Socket::write(char const *data, size_t size)
         }
         else
         {
-            writeEverything  = true;
+            wroteEverything  = true;
             emitDrain = true;
         }
     }
@@ -181,7 +183,6 @@ Net::loop()
             if ((*server)->fd > max_fd)
                 max_fd = (*server)->fd;
 		}
-        fprintf(stderr, "About to run through sockets: %d %d\n", sockets.size(), sockets.begin() == sockets.end());
         for (auto socket = sockets.begin(); socket != sockets.end(); ++socket)
         {
             FD_SET((*socket)->fd, &read_fds);
@@ -275,24 +276,20 @@ Net::loop()
 
         }
 
-        for (ssize_t i = 0; i < sockets.size(); ++i)
+        for (ssize_t i = 0; i < (ssize_t)(sockets.size()); ++i)
         {
             if (sockets[i]->fd < 0)
             {
-                fprintf(stderr, "Removing socket %d %d\n", i, sockets.size());
                 sockets.erase(sockets.begin() + i);
                 --i;
-                fprintf(stderr, "Removed socket %d %d\n", i, sockets.size());
-                fprintf(stderr, "Sockets begin vs end %d\n", sockets.begin() == sockets.end());
             }
         }
         
 
-        for (ssize_t i = 0; i < sockets.size(); ++i)
+        for (size_t i = 0; i < sockets.size(); ++i)
         {
             if (servers[i]->fd < 0)
             {
-                fprintf(stderr, "Removing server %i\n");
                 servers.erase(servers.begin() + i);
                 --i;
             }
@@ -303,7 +300,25 @@ Net::loop()
     releasesignals();
 }
 
-
+static bool AddStringUntilWhitespace(std::string &str, const char **data, size_t &length, bool trimTrailing = true)
+{
+    bool nextState = false;
+    size_t i;
+    for (i = 0; i < length && !isspace((*data)[i]); ++i)
+    {}
+    str += std::string((*data), i);
+    if (i < length) nextState = true;
+    
+    (*data) += i;
+    length -= -i;
+    
+    if (trimTrailing)
+    {
+        while (isspace(**data) && length > 0)
+        { (*data)++; length--; };
+    }
+    return nextState;
+}
 
 void HTTPRequest::ReadData(const char *data, size_t length)
 {
@@ -313,51 +328,38 @@ void HTTPRequest::ReadData(const char *data, size_t length)
         {
         case 0: // GET/POST/etc
         {
-            for (int i = 0; i < length && !isspace(data[i]); ++i)
-            {}
-            method += string(data, i);
-            if (i < length) readState = 1;
-
-            data += i;
-            length -= -i;
-
-            while (isspace(*data) && length > 0)
-            { data++; length-- };
+            if (AddStringUntilWhitespace(method, &data, length))
+                readState =1;
         }
         break;
         case 1: // Path
         {
-            for (int i = 0; i < length && !isspace(data[i]); ++i)
-            {}
-            path += string(data, i);
-            if (i < length) readState = 2;
-
-            data += i;
-            length -= -i;
-
-            while (isspace(*data) && length > 0)
-            { data++; length-- };
-            
+            if (AddStringUntilWhitespace(path, &data, length))
+                readState = 2;
         }
         break;
         case 2: // HTTP/1.1
         {
-            for (int i = 0; i < length && data[i] != '\n'; ++i)
-            {}
-            protocol += string(data, i);
-            if (i < length) readState = 3;
-
-            data += i;
-            length -= -i;
-
-            if (('\n' == *data) && length > 0)
-            { data++; length-- };
+            if (AddStringUntilWhitespace(protocol, &data, length, false))
+                readState = 3;
         }
         break;
+        // Now we're into end of line handling ...
+        // \r\n
+        // \r\r
+        // \n\r
+        // \n\n
         case 3:
         {
-            
+            if ('\r' == *data) readState = 4;
+            else if ('\n' == *data) readState = 5;
+            else THROWEXCEPTION("Bad headers");
         }
+        break;
+        case 4:
+        {
+        }
+        break;
         }
     }
 }

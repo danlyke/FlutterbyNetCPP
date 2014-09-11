@@ -20,6 +20,8 @@ WikiDB(FbyDBPtr db) : BaseObj(BASEOBJINIT(WikiDB)), db(db), debug_output(false) 
 
     void NukeDatabase();
     void LoadDirtyWikiEntries(vector<WikiEntryPtr> &wikientries);
+    void LoadContentDirtyWikiEntries(vector<WikiEntryPtr> &wikientries);
+    void LoadReferencedDirtyWikiEntries(vector<WikiEntryPtr> &wikientries);
     void LoadAllWikiEntries(vector<WikiEntryPtr> &wikientries);
     void BeginTransaction();
     void EndTransaction();

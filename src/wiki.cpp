@@ -76,9 +76,8 @@ Regex regexJheadAttribute("JHead Attribute",
 
 // "hostaddr = '127.0.0.1' port = '' dbname = 'fwaggle' user = 'fwaggle' password = 'password' connect_timeout = '10'"
 
-Wiki::Wiki() : BaseObj(BASEOBJINIT(Wiki)),
-//               wikidb(FBYNEW WikiDB(FBYNEW FbySQLiteDB("../var/fby.sqlite3"))),
-               wikidb(FBYNEW WikiDB(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke'"))),
+Wiki::Wiki(FbyDBPtr db) : BaseObj(BASEOBJINIT(Wiki)),
+                          wikidb(FBYNEW WikiDB(db)),
                staging_area(),
                output_area(),
                input_area(),
@@ -752,6 +751,31 @@ void Wiki::DoWikiFile(string wikiname)
     CopyChangedFiles(staging_area, output_area);
 }
 
+
+void Wiki::GetContentDirty()
+{
+    vector<WikiEntryPtr> wikientries;
+    wikidb->LoadContentDirtyWikiEntries(wikientries);
+    for(auto wikientry = wikientries.begin();
+        wikientry != wikientries.end();
+        ++wikientry)
+    {
+        cout << (*wikientry)->wikiname << endl;
+    }
+}
+void Wiki::GetReferencedDirty()
+{
+    vector<WikiEntryPtr> wikientries;
+    wikidb->LoadReferencedDirtyWikiEntries(wikientries);
+    for(auto wikientry = wikientries.begin();
+        wikientry != wikientries.end();
+        ++wikientry)
+    {
+        cout << (*wikientry)->wikiname << endl;
+    }
+}
+
+
 void Wiki::RebuildDirtyFiles(const char *outputdir)
 {
     vector<WikiEntryPtr> wikientries;
@@ -1407,6 +1431,13 @@ void Wiki::ScanWikiFiles()
     wikidb->EndTransaction();
 }
 
+void Wiki::ScanWikiFiles_NOCHANGES()
+{
+    wikidb->BeginTransaction();
+    ScanWikiFiles(input_area, staging_area);
+    wikidb->EndTransaction();
+}
+
 void Wiki::DoWikiFiles()
 {
     wikidb->BeginTransaction();
@@ -1686,3 +1717,45 @@ void Wiki::ScanDPLFiles()
     RebuildDirtyFiles(staging_area);
     wikidb->EndTransaction();
 }
+
+void Wiki::ScanDPLFiles_NOCHANGES()
+{
+    wikidb->BeginTransaction();
+    vector<WikiEntryPtr> wikientries;
+    string sql("SELECT * FROM WikiEntry");
+    wikidb->LoadAllWikiEntries(wikientries);
+    for(auto wikientry = wikientries.begin();
+        wikientry != wikientries.end();
+        ++wikientry)
+    {
+        string s(LoadWikiText(*wikientry));
+        if (s.find("<dpl") != string::npos)
+        {
+            (*wikientry)->needsContentRebuild = true;
+            wikidb->WriteWikiEntry(*wikientry);
+        }
+    }
+
+    wikidb->EndTransaction();
+}
+
+
+void Wiki::RebuildOutputFiles()
+{
+    wikidb->BeginTransaction();
+    vector<WikiEntryPtr> wikientries;
+
+    wikidb->LoadContentDirtyWikiEntries(wikientries);
+
+    for(auto wikientry = wikientries.begin();
+        wikientry != wikientries.end();
+        ++wikientry)
+    {
+        cout << "Scanning for links " << (*wikientry)->wikiname << endl;
+        ScanWikiFileForLinks(input_area + "/" + (*wikientry)->inputname);
+    }
+    RebuildDirtyFiles(staging_area);
+    wikidb->EndTransaction();
+}
+
+

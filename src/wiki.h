@@ -22,7 +22,7 @@ protected:
 
     string LoadFileToString(const char *filename);
 public:
-    Wiki();
+    Wiki(FbyDBPtr);
     void ScanWikiFiles(const char *inputDir, const char *stagingDir);
     void ScanWikiFiles(const std::string &inputDir, const std::string &stagingDir)
     { ScanWikiFiles(inputDir.c_str(), stagingDir.c_str()); }
@@ -65,7 +65,6 @@ public:
     void BeginTransaction();
     void EndTransaction();
 
-    void ScanWikiFiles();
     void DoEverything();
     void DoWikiFiles();
     void GetWikiFiles();
@@ -76,8 +75,9 @@ public:
     void ImportKML(string target_File);
     void DoDirtyFiles();
     void DoChangedFiles();
-    void ScanImages();
     void LoadEXIFData(string target_file);
+    void ScanWikiFiles();
+    void ScanImages();
     void ScanDPLFiles();
     void VerifyWikiLink(string target_file);
 
@@ -90,6 +90,14 @@ public:
     void SetStagingDirectory(string staging_directory);
     void SetOutputDirectory(string output_directory);
     void SetGoogleMapsAPIKey(string google_maps_api_key);
+
+// New cleaned up functions
+    void GetContentDirty();
+    void GetReferencedDirty();
+    void RebuildOutputFiles();
+
+    void ScanWikiFiles_NOCHANGES();
+    void ScanDPLFiles_NOCHANGES();
 
 private:
     string staging_area;

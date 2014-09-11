@@ -25,6 +25,18 @@ void WikiDB::LoadDirtyWikiEntries(vector<WikiEntryPtr> &wikientries)
     db->Load(wikientries, sql.c_str());
 }
 
+void WikiDB::LoadContentDirtyWikiEntries(vector<WikiEntryPtr> &wikientries)
+{
+    string sql("SELECT * FROM WikiEntry WHERE (needsContentRebuild != 0)");
+    db->Load(wikientries, sql.c_str());
+}
+
+void WikiDB::LoadReferencedDirtyWikiEntries(vector<WikiEntryPtr> &wikientries)
+{
+    string sql("SELECT * FROM WikiEntry WHERE (needsExternalRebuild != 0)");
+    db->Load(wikientries, sql.c_str());
+}
+
 
 void WikiDB::LoadAllWikiEntries(vector<WikiEntryPtr> &wikientries)
 {

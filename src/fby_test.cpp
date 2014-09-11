@@ -40,16 +40,14 @@ int main(int ac, char* av[])
             ("help,h", "produce help message")
             ("config,c", po::value<string>(&config_file)->default_value(getenv("HOME") + string("/.fby/config.ini")),
                   "name of a file of a configuration.")
-            ("doeverything", "rebuild the web site")
-            ("dowikifiles", "just do the wiki files")
-            ("dodirtyfiles", "just do the wiki files")
-            ("dochangedfiles", "just do the wiki files")
-            ("scanwikifiles", "just do the wiki files")
-            ("scanimages", "just do the images files")
-            ("scandplfiles", "just do the wiki files")
-            ("rebuilddetached", "Fork and do everything")
-
+            ("scanwikifiles", "scan wiki files and mark changed files changed")
+            ("scanimages", "scan image files and mark changed files changed")
+            ("scandplfiles", "scan wiki files and mark files with dpl tags changed")
             ("getwikifiles", "get a list of all of the wiki files")
+            ("getcontentdirty", "get a list of all of the content dirty wiki files")
+            ("getreferenceddirty", "get a list of all of the reference dirty wiki files")
+            ("rebuildoutputfiles", "rebuild wiki files based on current database status")
+
             ("writewikifile", po::value<string>(&target_file),
              "wiki file to write to")
             ("writeimagefile", po::value<string>(&target_file),
@@ -57,17 +55,11 @@ int main(int ac, char* av[])
             ("readwikifile", po::value<string>(&target_file),
              "wiki file to read from")
             ("loadexifdata", po::value<string>(&target_file),
-             "load a single image instance data")
-            ("verifywikilink", po::value<string>(&target_file),
-             "get the wiki link text out of a link")
-            ("showwikistatus", po::value<string>(&target_file),
-             "get the status record for a wiki entry")
-            ("loadjpegdata", po::value<string>(&target_file),
-             "get the status record for a wiki entry")
+             "load a single image instance data, by filemame")
             ("scanwikifile", po::value<string>(&target_file),
-             "scan specified file for links")
-            ("dowikifile", po::value<string>(&target_file),
-             "do specified file for links")
+             "scan specified file for links to other files, mark changed files externally changed")
+            ("rebuildwikifile", po::value<string>(&target_file),
+             "rebuild the specified wiki file")
             ("markcontentdirty", po::value<string>(&target_file),
              "mark the specified wiki page dirty")
             ("markreferencesdirty", po::value<string>(&target_file),
@@ -139,20 +131,33 @@ int main(int ac, char* av[])
 //        cout << "output_directory : " << output_directory << endl;
 //        cout << "google_maps_api_key : " << google_maps_api_key << endl;
 
-        WikiPtr wiki(FBYNEW Wiki(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke'")));
+        WikiPtr wiki(FBYNEW Wiki(FBYNEW FbySQLiteDB("../var/fby.sqlite3")));
         wiki->SetInputDirectory(input_directory);
         wiki->SetStagingDirectory(staging_directory);
         wiki->SetOutputDirectory(output_directory);
         wiki->SetGoogleMapsAPIKey(google_maps_api_key);
 
-        if (vm.count("doeverything")) {
-            wiki->DoEverything();
+
+        if (vm.count("scanwikifiles")) {
+            wiki->ScanWikiFiles_NOCHANGES();
         }
-        if (vm.count("dowikifiles")) {
-            wiki->DoWikiFiles();
+        if (vm.count("scanimages")) {
+            wiki->ScanImages();
+        }
+        if (vm.count("scandplfiles")) {
+            wiki->ScanDPLFiles_NOCHANGES();
         }
         if (vm.count("getwikifiles")) {
             wiki->GetWikiFiles();
+        }
+        if (vm.count("getcontentdirty")) {
+            wiki->GetContentDirty();
+        }
+        if (vm.count("getreferenceddirty")) {
+            wiki->GetReferencedDirty();
+        }
+        if (vm.count("rebuildoutputfiles")) {
+            wiki->RebuildOutputFiles();
         }
         if (vm.count("writewikifile")) {
             wiki->WriteWikiFile(target_file);
@@ -163,29 +168,11 @@ int main(int ac, char* av[])
         if (vm.count("readwikifile")) {
             wiki->ReadWikiFile(target_file);
         }
-        if (vm.count("rebuilddetached")) {
-            wiki->RebuildDetached();
-        }
-        if (vm.count("importkml")) {
-            wiki->ImportKML(target_file);
-        }
-        if (vm.count("dodirtyfiles")) {
-            wiki->DoDirtyFiles();
-        }
-        if (vm.count("dochangedfiles")) {
-            wiki->DoChangedFiles();
-        }
-        if (vm.count("scanimages")) {
-            wiki->ScanImages();
-        }
-        if (vm.count("scanwikifiles")) {
-            wiki->ScanWikiFiles();
+        if (vm.count("loadexifdata")) {
+            wiki->LoadEXIFData(target_file);
         }
         if (vm.count("scanwikifile")) {
             wiki->ScanWikiFileForLinks(target_file.c_str());
-        }
-        if (vm.count("dowikifile")) {
-            wiki->DoWikiFile(target_file);
         }
         if (vm.count("markcontentdirty")) {
             wiki->MarkContentDirty(target_file.c_str());
@@ -193,23 +180,6 @@ int main(int ac, char* av[])
         if (vm.count("markreferencesdirty")) {
             wiki->MarkReferencesDirty(target_file.c_str());
         }
-        if (vm.count("loadexifdata")) {
-            wiki->LoadEXIFData(target_file);
-        }
-        if (vm.count("scandplfiles")) {
-            wiki->ScanDPLFiles();
-        }
-        if (vm.count("verifywikilink")) {
-            wiki->VerifyWikiLink(target_file);
-        }
-        if (vm.count("showwikistatus")) {
-            wiki->ShowWikiStatus(target_file);
-        }
-        if (vm.count("loadjpegdata")) {
-            wiki->LoadJPEGData(target_file);
-        }
-
-
     }
     catch(std::exception& e)
     {
