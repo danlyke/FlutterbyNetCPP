@@ -48,12 +48,21 @@ test: ../bin/fby_test
 	cp ../t/wiki/*.wiki ../temp/wiki
 	../bin/fby_test -c ../t/config.ini --getwikifiles
 	../bin/fby_test -c ../t/config.ini --scanwikifiles
-	echo 'Content dirty'
+	-echo '!!! Content dirty'
 	../bin/fby_test -c ../t/config.ini --getcontentdirty
-	echo 'Referenced dirty'
+	-echo '!!! Referenced dirty'
 	../bin/fby_test -c ../t/config.ini --getreferenceddirty
-	echo 'Scanning and rebuilding'
+	-echo '!!! Scanning and rebuilding'
 	../bin/fby_test -c ../t/config.ini --rebuildoutputfiles
+	touch ../temp/wiki/Another*.wiki
+	../bin/fby_test -c ../t/config.ini --scanwikifiles
+	-echo '!!! Content dirty'
+	../bin/fby_test -c ../t/config.ini --getcontentdirty
+	-echo '!!! Referenced dirty'
+	../bin/fby_test -c ../t/config.ini --getreferenceddirty
+	-echo '!!! Scanning and rebuilding'
+	../bin/fby_test -c ../t/config.ini --rebuildoutputfiles
+
 
 #	mkdir -p $(HTMLSTAGING)
 #	../bin/wikistringtest

@@ -141,6 +141,12 @@ string Wiki::LoadFileToString(const char *filename)
     FILE *f = fopen(filename, "r");
     if (NULL == f)
     {
+        string fully_qualified_name = input_area + "/" + fn;
+        f = fopen(fully_qualified_name.c_str(), "r");
+    }
+
+    if (NULL == f)
+    {
         string errmsg("Unable to open: ");
         errmsg += filename;
         cerr << errmsg << endl;
@@ -483,10 +489,12 @@ void Wiki::ScanWikiFiles(const char *inputDir, const char *stagingDir)
     result_set_t stagingFiles;
     FileNameAndTime fnat(stagingFiles);
 
+    cout << "Staging dir: " << stagingDir << endl;
     FileFind(stagingDir,
              [&stagingFiles](fs::directory_iterator dir_iter)
              {
-                 if (dir_iter->path().filename().extension() == "wiki")
+                 cout << "In staging directory found file " << dir_iter->path().filename().string() << " with extension " << dir_iter->path().filename().extension().string() << endl;
+                 if (dir_iter->path().filename().extension() == ".html")
                  {
                      string path(dir_iter->path().filename().string());
                      size_t pos = path.rfind("/");
@@ -494,6 +502,7 @@ void Wiki::ScanWikiFiles(const char *inputDir, const char *stagingDir)
                      {
                          path = path.erase(0, pos);
                      }
+                     cout << "Adding " << path << " to stagingFiles" << endl;
                      stagingFiles.insert(result_set_t::value_type(path, fs::last_write_time(*dir_iter)));
                  }
              }
@@ -511,6 +520,7 @@ void Wiki::ScanWikiFiles(const char *inputDir, const char *stagingDir)
                      string wikiname(NormalizeWikiName(basename));
                      string filename(NormalizeWikiNameToFilename(wikiname));
                      string destname(filename + ".html");
+                     cout << "Searching stagingFiles for " << destname << endl;
                      result_set_t::const_iterator source = stagingFiles.find(destname);
 
                      WikiEntryPtr entry;
@@ -1584,9 +1594,7 @@ void Wiki::ImportKML(string /* target_file */) { assert(0); }
 
 void Wiki::DoDirtyFiles()
 {
-    wikidb->BeginTransaction();
-    RebuildDirtyFiles(staging_area);
-    wikidb->EndTransaction();
+    RebuildOutputFiles();
     CopyChangedFiles(staging_area, output_area);
 }
 
