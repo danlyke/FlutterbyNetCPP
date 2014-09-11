@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        WikiPtr wiki(FBYNEW Wiki);
+        WikiPtr wiki(FBYNEW Wiki(FBYNEW FbySQLiteDB("../var/fby.sqlite3")));
 
         wiki->ScanWikiFilesForLinks(argv[1], argv[2]);
     }

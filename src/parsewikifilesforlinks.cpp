@@ -21,7 +21,7 @@ int main(int argc, char** argv)
         fprintf(stderr, "Usage: %s inputfile[s]\n", argv[0]);
         return 1;
     }
-    WikiPtr wiki(FBYNEW Wiki);
+    WikiPtr wiki(FBYNEW Wiki(FBYNEW FbySQLiteDB("../var/fby.sqlite3")));
 
     wiki->BeginTransaction();
     for (int arg = 1; arg < argc; ++arg)

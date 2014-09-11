@@ -38,7 +38,7 @@ TEST_DIRECTORIES=../temp/html_staging/ ../temp/public_html/ ../temp/wiki
 all: $(EXECUTABLE) $(EXECUTABLE2) $(OUTPUTDIRECTORIES) ../var/fby.sqlite3
 	mkdir -p $(OUTPUTDIRECTORIES)
 	mkdir -p $(TEST_DIRECTORIES)
-	../bin/fby_test -c ../t/config.ini --
+#	../bin/fby_test -c ../t/config.ini --
 
 
 test: ../bin/fby_test
