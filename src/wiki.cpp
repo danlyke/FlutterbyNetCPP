@@ -139,7 +139,7 @@ string Wiki::LoadFileToString(const char *filename)
     if (debug_output)
         cout << "Loading file '" << filename << "' to string" << endl;
     FILE *f = fopen(filename, "r");
-    if (NULL == f)
+    if (NULL == f && (fn.substr(0,input_area.length()) == input_area))
     {
         string fully_qualified_name = input_area + "/" + fn;
         f = fopen(fully_qualified_name.c_str(), "r");
@@ -1763,8 +1763,7 @@ void Wiki::RebuildOutputFiles()
         wikientry != wikientries.end();
         ++wikientry)
     {
-        cout << "Scanning for links " << (*wikientry)->wikiname << endl;
-        ScanWikiFileForLinks(input_area + "/" + (*wikientry)->inputname);
+        ScanWikiFileForLinks((*wikientry)->inputname);
     }
     RebuildDirtyFiles(staging_area);
     wikidb->EndTransaction();
