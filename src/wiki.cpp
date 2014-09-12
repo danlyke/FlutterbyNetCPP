@@ -1714,11 +1714,15 @@ void Wiki::ScanDPLFiles()
         wikientry != wikientries.end();
         ++wikientry)
     {
-        string s(LoadWikiText(*wikientry));
-        if (s.find("<dpl") != string::npos)
+        string imagename;
+        if (!StartsWithImage((*wikientry)->wikiname, imagename))
         {
-            (*wikientry)->needsContentRebuild = true;
-            wikidb->WriteWikiEntry(*wikientry);
+            string s(LoadWikiText(*wikientry));
+            if (s.find("<dpl") != string::npos)
+            {
+                (*wikientry)->needsContentRebuild = true;
+                wikidb->WriteWikiEntry(*wikientry);
+            }
         }
     }
 
