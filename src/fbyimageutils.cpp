@@ -1,4 +1,4 @@
-#include "imageutils.h"
+#include "fbyimageutils.h"
 #include "fbyregex.h"
 
 #include <map>

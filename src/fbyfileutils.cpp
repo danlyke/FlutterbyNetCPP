@@ -1,4 +1,4 @@
-#include "filefind.h"
+#include "fbyfilefind.h"
 #include <stdio.h>
 #include <fstream>
 
