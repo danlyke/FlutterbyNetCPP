@@ -60,7 +60,6 @@ protected:
     int ScanImages(const char *path);
     int ScanImages(const std::string &path)
     { return ScanImages(path.c_str()); }
-    void CreateThumbnail(string targetdir, string imagefile, int width);
 public:
     void BeginTransaction();
     void EndTransaction();

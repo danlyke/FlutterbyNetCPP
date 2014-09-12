@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string.h>
 
-#include "filefind.h"
+#include "fbyfilefind.h"
 #include "fbyregex.h"
 
 using namespace std;

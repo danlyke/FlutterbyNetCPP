@@ -239,20 +239,6 @@ void Wiki::ScanWikiFileForLinks(const char *filename)
 }
 
 
-
-
-void Wiki::CreateThumbnail(string targetdir, string imagefile, int width)
-{
-    string imagepath(targetdir + imagefile);
-    string destimagepath(targetdir + to_string(width) + "px-" + imagefile);
-    string cmd("convert -auto-orient -geometry "
-               + to_string(width) + "x" + to_string(width)
-               + " '" + imagepath 
-               + "' '" + destimagepath + "'");
-    ::system(cmd.c_str());
-    LoadJPEGData(destimagepath);
-}
-
 string Wiki::ImageNameFromImageFileName( const string & filename )
 {
     string wikiname(filename);
@@ -1418,9 +1404,9 @@ void Wiki::WriteImageFile(string target_file)
     fclose(target);
 
     LoadJPEGData(targetfile);
-    CreateThumbnail(targetdir, imagefile, 160);
-    CreateThumbnail(targetdir, imagefile, 640);
-    CreateThumbnail(targetdir, imagefile, 1024);
+    LoadJPEGData(CreateThumbnail(targetdir, imagefile, 160));
+    LoadJPEGData(CreateThumbnail(targetdir, imagefile, 640));
+    LoadJPEGData(CreateThumbnail(targetdir, imagefile, 1024));
 
     string upload_wiki("Status Uploaded Images");
     string upload_references(input_area + "/" + upload_wiki + ".wiki");

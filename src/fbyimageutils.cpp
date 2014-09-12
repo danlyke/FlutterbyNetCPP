@@ -64,3 +64,16 @@ bool FindJPEGSize(const string &filename,
     pclose(f);
     return true;
 }
+
+
+string CreateThumbnail(string targetdir, string imagefile, int width)
+{
+    string imagepath(targetdir + imagefile);
+    string destimagepath(targetdir + to_string(width) + "px-" + imagefile);
+    string cmd("convert -auto-orient -geometry "
+               + to_string(width) + "x" + to_string(width)
+               + " '" + imagepath 
+               + "' '" + destimagepath + "'");
+    ::system(cmd.c_str());
+    return destimagepath;
+}

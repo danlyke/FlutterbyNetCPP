@@ -3,7 +3,7 @@
 #include <map>
 #include <boost/filesystem.hpp>
 
-#include "filefind.h"
+#include "fbyfilefind.h"
 #include "fbydb.h"
 #include "wiki.h"
 
