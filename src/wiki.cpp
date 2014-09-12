@@ -11,7 +11,7 @@
 #include <sys/types.h>
 
 #include "wikistrings.h"
-#include "filefind.h"
+#include "fbyfilefind.h"
 #include "fbyregex.h"
 #include "regexparser.h"
 #include "stringutil.h"
@@ -19,24 +19,11 @@
 #include "wikidpl.h"
 #include "wikivideoflash.h"
 #include "wikistatusupdate.h"
+#include "fbyimageutils.h"
+#include "fbyfileutils.h"
 
 using namespace std;
 
-/*
-
-File size    : 1909734 bytes
-File date    : 2013:09:16 08:25:13
-Camera make  : HTC
-Camera model : myTouch_4G_Slide
-Date/Time    : 2013/08/16 07:10:43
-Resolution   : 3264 x 2448
-Focal length :  3.7mm
-ISO equiv.   : 738
-GPS Latitude : N 38d 13m 29.911s
-GPS Longitude: W 122d 37m 39.625s
-GPS Altitude :  0.00m
-JPEG Quality : 90
-*/
 
 using namespace std;
 using namespace boost::iostreams ;
@@ -68,11 +55,6 @@ ParseTreeNode *TreeBuilderWiki::NodeFactory(const string &tagname)
 
 
 
-Regex regexJheadResolution("JHead Resolution",
-                           "Resolution\\s+\\:\\s+(\\d+)\\s*x\\s*(\\d+)");
-
-Regex regexJheadAttribute("JHead Attribute",
-                          "^(.*?)\\s+\\:\\s+(.*)$");
 
 // "hostaddr = '127.0.0.1' port = '' dbname = 'fwaggle' user = 'fwaggle' password = 'password' connect_timeout = '10'"
 
@@ -258,42 +240,6 @@ void Wiki::ScanWikiFileForLinks(const char *filename)
 
 
 
-bool FindJPEGSize(const string &filename,
-                  int & width, int & height,
-                  map<string,string> &attributes)
-{
-    string command("jhead '" + filename + "'");
-
-    FILE *f = popen(command.c_str(), "r");
-    if (NULL == f)
-    {
-        string errstr("Unable to popen: " + command);
-        perror(errstr.c_str());
-        return false;
-    }
-
-    char buffer[256];
-    RegexMatch match;
-    while (NULL != fgets(buffer, sizeof(buffer) - 1, f))
-    {
-        string s(buffer);
-        if (regexJheadResolution.Match(s, match))
-        {
-            width = stoi(match.Match(1));
-            height = stoi(match.Match(2));
-
-//            cout << "Image " << filename << " is " << match.Match(1) << " by " << match.Match(2) << endl;
-        }
-        else if (regexJheadAttribute.Match(s, match))
-        {
-            attributes[match.Match(1)] = match.Match(2);
-        }
-// << s << endl;
-    }
-
-    pclose(f);
-    return true;
-}
 
 void Wiki::CreateThumbnail(string targetdir, string imagefile, int width)
 {
@@ -651,89 +597,6 @@ string Wiki::LoadWikiText(WikiEntryPtr wikiEntry)
     return fileContents;
 }
 
-static void CopyChangedFiles(const string &source_dir, const string &target_dir)
-{
-    FileFind(source_dir,
-             [source_dir, target_dir](fs::directory_iterator dir_iter)
-             {
-                 string source_filename(dir_iter->path().filename().string());
-                 string target_filename(dir_iter->path().filename().string());
-                 size_t pos = target_filename.rfind("/");
-                 if (pos != string::npos)
-                 {
-                     target_filename = target_filename.erase(0, pos);
-                 }
-                 target_filename = target_dir + target_filename;
-
-
-                 file_status target_status(status(target_filename));
-
-                 if (exists(target_status) 
-                     && last_write_time(target_filename) >= last_write_time(source_filename))
-                     return;
-
-                 FILE *source_file = fopen(source_filename.c_str(), "r");
-                 if (source_file == NULL)
-                 {
-                     cerr << "Unable to open " << source_filename << " for reading" << endl;
-                 }
-                 else
-                 {
-                     long source_length;
-                     fseek(source_file, 0L, SEEK_END);
-                     source_length = ftell(source_file);
-                     
-                     bool do_the_copy = false;
-                     char *source_bytes = new char[source_length];
-                     fseek(source_file, 0L, SEEK_SET);
-                     fread(source_bytes, source_length, 1, source_file);
-                     fclose(source_file);
-                     
-                     long target_length = -1;
-                     FILE *target_file = fopen(target_filename.c_str(), "r");
-                     if (NULL != target_file)
-                     {
-                         fseek(target_file, 0L, SEEK_END);
-                         target_length = ftell(target_file);
-                         
-                         if (target_length == source_length)
-                         {
-                             char *target_bytes = new char [target_length];
-                             fseek(target_file, 0L, SEEK_SET);
-                             fread(target_bytes, target_length, 1, target_file);
-                             if (memcmp(target_bytes, source_bytes, target_length))
-                                 do_the_copy = true;
-                             delete[] target_bytes;
-                         }
-                         else
-                             do_the_copy = true;
-                         
-                         fclose(target_file);
-                     }
-                     else
-                         do_the_copy = true;
-                     
-                     if (do_the_copy)
-                     {
-//                         cout << "Copying " << source_filename << " to " << target_filename << endl;
-                         target_file = fopen(target_filename.c_str(), "w");
-                         if (NULL == target_file)
-                         {
-                             cerr << "Unable to open "
-                                  << target_filename.c_str()
-                                  << " for writing" << endl;
-                         }
-                         fwrite(source_bytes, source_length, 1, target_file);
-                         fclose(target_file);
-                     }
-                     else
-                     {
-//                         cout <<  "Skipping " << source_filename << endl;
-                     }
-                     delete[] source_bytes;
-                 }
-             });
-}
 
 
 void Wiki::DoWikiFile(string wikiname)
@@ -773,6 +636,7 @@ void Wiki::GetContentDirty()
         cout << (*wikientry)->wikiname << endl;
     }
 }
+
 void Wiki::GetReferencedDirty()
 {
     vector<WikiEntryPtr> wikientries;

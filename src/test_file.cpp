@@ -3,7 +3,7 @@
 #include <map>
 #include <boost/filesystem.hpp>
 
-#include "filefind.h"
+#include "fbyfilefind.h"
 
 using namespace std;
 namespace fs = boost::filesystem;
