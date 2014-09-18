@@ -34,7 +34,8 @@ StatusUpdate() : FbyORM(BASEOBJINIT(StatusUpdate)),
         thumbnailheight(),
         uniquifer(),
         xid(),
-        publishdelay()
+        publishdelay(),
+        twitterid()
         {}
     int id; // SQL INTEGER PRIMARY KEY,
     std::string status; // SQL TEXT
@@ -61,6 +62,7 @@ StatusUpdate() : FbyORM(BASEOBJINIT(StatusUpdate)),
     int uniquifer; // SQL integer                      default (-1)
     std::string xid; // SQL text                         
     double publishdelay; // SQL double precision             default 0
+    std::string twitterid;
 };
 
 FBYCLASSPTR(Camera);
