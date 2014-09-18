@@ -13,7 +13,7 @@ int main(int argc, char **argv)
                              {
                                  string s("Got ");
                                  s += string(data, length);
-                                 s += "\n"1;
+                                 s += "\n";
                                  cout << s;
                                  socket->write(s);
                              });
