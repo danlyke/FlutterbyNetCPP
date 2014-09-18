@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
     length = RemoveCRs(buffer, length);
 
     {
-        TreeParser treeParser;
+        MarkedUpTextParser treeParser;
         treeParser.Parse(treeBuilder, buffer,length);
     }
     

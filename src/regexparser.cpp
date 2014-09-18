@@ -285,12 +285,6 @@ void FormatChunk(TreeBuilder &treeBuilder,const char *buffer, size_t count)
     }
     FormatWikiText(treeBuilder, buffer, count);
 }
- 
-                
-            
-            
-
-
 
 
 void FormatParagraph(TreeBuilder &treeBuilder,const char *buffer, size_t count)
@@ -629,7 +623,7 @@ RegexMatcher *paragraphRegexes[] =
 };
 
 
-void TreeParser::HandleParagraphType(TreeBuilder &treeBuilder, const char *buffer, int length)
+void MarkedUpTextParser::HandleParagraphType(TreeBuilder &treeBuilder, const char *buffer, int length)
 {
     RegexMatch match;
     size_t i;
@@ -674,7 +668,7 @@ void TreeParser::HandleParagraphType(TreeBuilder &treeBuilder, const char *buffe
 //     cout << endl;
 // }
 
-TreeParser::TreeParser()
+MarkedUpTextParser::MarkedUpTextParser()
     : debug(true)
 {
     for (size_t i = 0; i < sizeof(paragraphRegexes) / sizeof(*paragraphRegexes); ++i)
@@ -683,7 +677,7 @@ TreeParser::TreeParser()
     }
 }
 
-TreeParser::~TreeParser()
+MarkedUpTextParser::~MarkedUpTextParser()
 {
 #if 0
     for (size_t i = 0; i < sizeof(paragraphRegexes) / sizeof(*paragraphRegexes); ++i)
@@ -694,7 +688,7 @@ TreeParser::~TreeParser()
 #endif
 }
 
-void TreeParser::ParseForPara(TreeBuilder & treeBuilder, const char *buffer, size_t length)
+void MarkedUpTextParser::ParseForPara(TreeBuilder & treeBuilder, const char *buffer, size_t length)
 {
     size_t para_start = 0;
     do
@@ -721,16 +715,55 @@ void TreeParser::ParseForPara(TreeBuilder & treeBuilder, const char *buffer, siz
     } while (para_start < length);
 }
 
-void TreeParser::Parse(TreeBuilder & treeBuilder, const char *buffer, size_t length)
+void MarkedUpTextParser::Parse(TreeBuilder & treeBuilder, const char *buffer, size_t length)
 {
     RegexMatch match;
     
     while (regexCommentFinder.Match(buffer, length, match))
     {
         ParseForPara(treeBuilder, buffer, match.End(1));
+        treeBuilder.AddComment(buffer + match.Start(2), match.Length(2));
         buffer += match.End(2);
         length -= match.End(2);
     }
     ParseForPara(treeBuilder, buffer, length);
 
 }
+
+
+
+HTMLParser::HTMLParser()
+    : debug(true)
+{
+    for (size_t i = 0; i < sizeof(paragraphRegexes) / sizeof(*paragraphRegexes); ++i)
+    {
+        paragraphRegexes[i]->Compile();
+    }
+}
+
+HTMLParser::~HTMLParser()
+{
+#if 0
+    for (size_t i = 0; i < sizeof(paragraphRegexes) / sizeof(*paragraphRegexes); ++i)
+    {
+        paragraphRegexes[i]->Free();
+        delete paragraphRegexes[i];
+    }
+#endif
+}
+
+void HTMLParser::Parse(TreeBuilder & treeBuilder, const char *buffer, size_t length)
+{
+    RegexMatch match;
+    
+    while (regexCommentFinder.Match(buffer, length, match))
+    {
+        FormatParagraph(treeBuilder, buffer, match.End(1));
+        treeBuilder.AddComment(buffer + match.Start(2), match.Length(2));
+        buffer += match.End(2);
+        length -= match.End(2);
+    }
+    FormatParagraph(treeBuilder, buffer, length);
+
+}
+

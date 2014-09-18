@@ -18,6 +18,7 @@ public:
     bool HasA(const char *name);
     bool ReferencesImage();
 
+
     void ForEach(std::function<void (ParseTreeNodePtr)> f);
     void AsHTML(HTMLOutputter &outputter);
     ParseTreeNodePtr CurrentNode();
@@ -27,8 +28,8 @@ public:
     void Pop(const string &name);
     void Graft(ParseTreeNodePtr node, int where);
 
-    virtual ParseTreeNode *NodeFactory(const std::string & /* nodename */)
-    { return NULL; };
+    virtual void AddComment(const char * /* buffer */, size_t /* len */);
+    virtual ParseTreeNode *NodeFactory(const std::string & /* nodename */);
 };
 
 #endif /* #ifndef TREEBUILDER_H_INCLUDED */

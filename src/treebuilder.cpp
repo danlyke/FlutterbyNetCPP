@@ -115,3 +115,13 @@ void TreeBuilder::Pop(const string &name)
         nodeStack.pop_back();
     }
 }
+
+
+
+void TreeBuilder::AddComment(const char * /* buffer */, size_t /* len */)
+{}
+
+ParseTreeNode *TreeBuilder::NodeFactory(const std::string & /* nodename */)
+{
+    return NULL;
+};
