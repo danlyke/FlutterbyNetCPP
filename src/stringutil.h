@@ -20,5 +20,6 @@ inline std::vector<std::string> split(const std::string &s, char delim) {
 }
 
 size_t RemoveCRs(char *buffer, size_t length);
+std::string ConvertImageNameToDescription(const std::string &name);
 
 #endif /* #ifndef STRINGUTIL_H_INCLUDED */

@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <string.h>
+#include "stringutil.h"
 
 size_t RemoveCRs(char *buffer, size_t length)
 {
@@ -33,5 +34,42 @@ size_t RemoveCRs(char *buffer, size_t length)
         memset(buffer + follower, 0, length - follower);
     }
     return follower;
+}
+
+
+std::string ConvertImageNameToDescription(const std::string &name)
+{
+    std::string result;
+
+    if (name.length() == 0)
+        return result;
+
+    size_t pos = 1;
+    result += name[0];
+    char prevChar = name[0];
+
+    while (pos < name.length() && name[pos] != '.')
+    {
+        if (isalpha(name[pos]))
+        {
+            if (!isalpha(prevChar))
+            {
+                    result += ' ';
+            }
+            else if (isupper(name[pos]) && !isupper(prevChar))
+            {
+                result += ' ';
+            }
+        }
+        else if (pos && (isalpha(prevChar)))
+        {
+            result += ' ';
+        }
+
+        result += name[pos];
+        prevChar = name[pos];
+        ++pos;
+    }
+    return result;
 }
 
