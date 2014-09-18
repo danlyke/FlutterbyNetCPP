@@ -5,7 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <string.h>
-
+#include <algorithm>
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -30,7 +30,7 @@ using namespace boost::iostreams ;
 namespace fs = boost::filesystem;
 
 string dotWiki(".wiki");
-bool debug_output(true);
+bool debug_output(false);
 
 #include "wikidb.h"
 
@@ -170,7 +170,7 @@ void Wiki::ScanWikiFileForLinks(const char *filename)
 
     string buffer = LoadFileToString(filename);
     {
-        TreeParser treeParser;
+        MarkedUpTextParser treeParser;
         treeParser.Parse(treeBuilder, buffer.c_str(),buffer.length());
     }
 
@@ -195,47 +195,44 @@ void Wiki::ScanWikiFileForLinks(const char *filename)
     wikidb->LoadWikiReferencesFrom(wikiEntryReferences, thisWikiName);
 
     vector<string> currentLinks;
-    for (auto wikiEntryReference = wikiEntryReferences.begin();
-         wikiEntryReference != wikiEntryReferences.end();
-         ++wikiEntryReference)
-    {
-        currentLinks.push_back((*wikiEntryReference)->to_wikiname);
-    }
+    for_each(wikiEntryReferences.begin(),
+             wikiEntryReferences.end(),
+             [&currentLinks](WikiEntryReferencePtr wikiEntryReference)
+             { currentLinks.push_back(wikiEntryReference->to_wikiname); });
 
     vector<string> addLinks;
     vector<string> delLinks;
     HTMLOutputterOutboundLinks olinks;
     treeBuilder.AsHTML(olinks);
 
-    for (auto wikiname = currentLinks.begin(); 
-         wikiname != currentLinks.end(); ++wikiname)
-    {
-        if (olinks.GetLinks().end() == find(olinks.GetLinks().begin(),
-                  olinks.GetLinks().end(), *wikiname))
-            delLinks.push_back(*wikiname);
-    }
+    for_each(currentLinks.begin(), currentLinks.end(),
+             [&olinks, &delLinks](const string &wikiname)
+             {
+                 if (olinks.GetLinks().end() == find(olinks.GetLinks().begin(),
+                                                     olinks.GetLinks().end(), wikiname))
+                     delLinks.push_back(wikiname);
+             });
 
-    for (auto wikiname = olinks.GetLinks().begin(); 
-         wikiname != olinks.GetLinks().end(); ++wikiname)
-    {
-        if (currentLinks.end() == find(currentLinks.begin(),
-                  currentLinks.end(),
-                  *wikiname))
-            addLinks.push_back(*wikiname);
-    }
-    for (auto wikiname = delLinks.begin();
-         wikiname != delLinks.end();
-         ++wikiname)
-    {
-        wikidb->DeleteWikiReference(thisWikiName, *wikiname);
-    }
+    for_each(olinks.GetLinks().begin(), olinks.GetLinks().end(),
+             [&currentLinks, &addLinks](const string &wikiname)
+             {
+                 if (currentLinks.end() == find(currentLinks.begin(),
+                                                currentLinks.end(),
+                                                wikiname))
+                     addLinks.push_back(wikiname);
+             });
 
-    for (auto wikiname = addLinks.begin();
-         wikiname != addLinks.end();
-         ++wikiname)
-    {
-        wikidb->AddWikiReference(thisWikiName, *wikiname);
-    }
+    for_each(delLinks.begin(), delLinks.end(),
+             [&](const string &wikiname)
+             {
+                 this->wikidb->DeleteWikiReference(thisWikiName, wikiname);
+             });
+
+    for_each (addLinks.begin(), addLinks.end(),
+             [&](const string &wikiname)
+              {
+                  this->wikidb->AddWikiReference(thisWikiName, wikiname);
+              });
 }
 
 
@@ -535,7 +532,9 @@ string Wiki::LoadWikiText(WikiEntryPtr wikiEntry)
                 ImageInstancePtr thumb(wikidb->ImageInstanceThumb(image));
                 ImageInstancePtr original(wikidb->ImageInstanceOriginal(image));
                 
-                fileContents += "== Full Size ==\n\n";
+                fileContents += "== ";
+                fileContents += ConvertImageNameToDescription(imagename);
+                fileContents += " ==\n\n";
                 fileContents += "<img src=\"" + WebPathFromFilename(fullsize->filename)
                     + "\" width=\"" + to_string(fullsize->width)
                     + "\" height=\"" + to_string(fullsize->height)
@@ -676,7 +675,7 @@ void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t l
     bool includeLoginManager(true);
     TreeBuilderWiki treeBuilder(google_maps_api_key, wikidb);
     {
-        TreeParser treeParser;
+        MarkedUpTextParser treeParser;
         treeParser.Parse(treeBuilder, buffer,length);
     }
 
@@ -828,7 +827,7 @@ void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t l
                 sections.push_back(n);
             }
         });
-    if (!sections.empty())
+    if (sections.size() > 1)
     {
         ParseTreeNodePtr div(new ElementNode("div"));
         div->AddAttribute("class");
