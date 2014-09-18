@@ -75,7 +75,7 @@ void StatusUpdateNode::AsHTML(HTMLOutputter &outputter)
         {
             
             TreeBuilder treeBuilder;
-            TreeParser treeParser;
+            MarkedUpTextParser treeParser;
             outputter.AddHTMLNodeBegin(strDt, styleClearLeftAttrs, false);
             outputter.AddHTMLNodeBegin(strStrong, emptyAttrs, false);
             outputter.AddString( (*update)->person);
