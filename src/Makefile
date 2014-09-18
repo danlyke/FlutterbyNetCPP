@@ -14,7 +14,7 @@ LIBSOURCES=fbystd.cpp parsertokens.cpp textparse.yy.cpp stringutil.cpp parsetree
 
 SOURCES=sqldefinitions.cpp wiki.cpp wikidb.cpp wikiobjects.cpp wikinode.cpp wikivideoflash.cpp wikistatusupdate.cpp  wikiopenlayers.cpp wikidpl.cpp openlayerstemplate.cpp
 
-EXESOURCES=test_file.cpp test_lambda.cpp test_flex.cpp test_tester.cpp test_reset.cpp test_regex.cpp test_gdbm.cpp test_removecrs.cpp test_readstdout.cpp test_sqlite.cpp sqlextractor.cpp test_strftime.cpp test_findimageinfo.cpp  test_iter.cpp test_wikistring.cpp  fixedstringextractor.cpp test_boost_options.cpp test_netserver.cpp
+EXESOURCES=test_file.cpp test_lambda.cpp test_flex.cpp test_tester.cpp test_reset.cpp test_regex.cpp test_gdbm.cpp test_removecrs.cpp test_readstdout.cpp test_sqlite.cpp sqlextractor.cpp test_strftime.cpp test_findimageinfo.cpp  test_iter.cpp test_wikistring.cpp  fixedstringextractor.cpp test_boost_options.cpp test_netserver.cpp test_image_name_decomposition.cpp
 # copychangedfiles.cpp
 # test_subst.cpp
 
