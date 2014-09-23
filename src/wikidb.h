@@ -48,6 +48,8 @@ WikiDB(FbyDBPtr db) : BaseObj(BASEOBJINIT(WikiDB)), db(db), debug_output(false) 
     void LoadStatusUpdates(vector<StatusUpdatePtr> &updates,
                            const string &from,
                            const string &to);
+    void LoadStatusUpdatesForImage(vector<StatusUpdatePtr> &updates, 
+                                   const string &imagename);
     void LoadDPLEntries(vector<WikiEntryPtr> & entries,
                         const string &category,
                         const string &order,
