@@ -829,6 +829,22 @@ void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t l
 
     os << "</div><div class=\"contentcolumn\">";
 
+    if (wikiname == "User:DanLyke")
+    {
+        os << "<div class=\"precontent\"><p class=\"h-card vcard\">\n";
+        os << "  <img class=\"u-photo\" width=\"154\" height=\"160\" align=\"right\" src=\"http://www.flutterby.net/files/images/14/09/22/640px-BoatBuildingPicAsPortrait.jpg\" alt=\"\" />\n";
+        os << "  <a class=\"p-name u-url url fn\" href=\"http://www.flutterby.net/User:DanLyke\">Dan Lyke</a><br />\n";
+        os << "  <a class=\"u-email email\" href=\"mailto:danlyke@flutterby.com\">danlyke@flutterby.com</a>,<br /> \n";
+        os << "  <span class=\"p-tel tel\">415-342-5180</span> (cell)<br />\n";
+        os << "  <span class=\"p-street-address street-address\">10 Mission Drive</span>,<br />\n";
+        os << "  <span class=\"p-locality locality\">Petaluma</span><br />\n";
+        os << "  <span class=\"p-region region\">California\n";
+        os << "  <span class=\"p-postal-code postal-code\">94952</span>\n";
+        os << "  <span class=\"p-country-name country-name \">US</span>\n";
+        os << "  <br clear=\"both\" />\n";
+        os << "</p></div>\n";
+    }
+
     vector<ParseTreeNodePtr> sections;
     treeBuilder.ForEach(
         [&sections](ParseTreeNodePtr n)
