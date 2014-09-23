@@ -9,7 +9,7 @@ vpath %.cpp .
 
 CC=g++
 CFLAGS= -std=c++11 -Wall -Wextra -Weffc++ -g -fPIC -I /usr/include/postgresql
-LDFLAGS= -L. -lfby -lsqlite3 -lpq -lboost_filesystem -lboost_system -lgdbm -lpcre -lboost_iostreams  -l boost_program_options
+LDFLAGS= -L. -lfby -lsqlite3 -lpq -lboost_filesystem -lboost_system -lgdbm -lpcre -lboost_iostreams  -l boost_program_options -lcgicc
 LIBSOURCES=fbystd.cpp parsertokens.cpp textparse.yy.cpp stringutil.cpp parsetree.cpp fbyregex.cpp fby_core_unix_array.cpp fby_core_unix_helpers.cpp fby_core_unix.cpp fbydb.cpp fbydb_sqlite3.cpp fbydb_postgresql.cpp regexparser.cpp treebuilder.cpp wikistrings.cpp netserver.cpp fbyfileutils.cpp fbyimageutils.cpp
 
 SOURCES=sqldefinitions.cpp wiki.cpp wikidb.cpp wikiobjects.cpp wikinode.cpp wikivideoflash.cpp wikistatusupdate.cpp  wikiopenlayers.cpp wikidpl.cpp openlayerstemplate.cpp
@@ -38,6 +38,7 @@ TEST_DIRECTORIES=../temp/html_staging/ ../temp/public_html/ ../temp/wiki
 all: $(EXECUTABLE) $(EXECUTABLE2) $(OUTPUTDIRECTORIES) ../var/fby.sqlite3
 	mkdir -p $(OUTPUTDIRECTORIES)
 	mkdir -p $(TEST_DIRECTORIES)
+	cp ../bin/getstatus.cgi  /usr/lib/cgi-bin/
 #	../bin/fby_test -c ../t/config.ini --
 
 

@@ -229,6 +229,14 @@ void WikiDB::LoadStatusUpdates(vector<StatusUpdatePtr> &updates,
     db->Load(updates, sql.c_str());
 }
 
+void WikiDB::LoadStatusUpdatesForImage(vector<StatusUpdatePtr> &updates, 
+                                       const string &imagename)
+{
+    string sql("SELECT * FROM StatusUpdate WHERE imagename=" + db->Quote(imagename));
+    db->Load(updates, sql.c_str());
+}
+
+
 void WikiDB::LoadStatusUpdates(vector<StatusUpdatePtr> &updates,
                        const string &from,
                        const string &to)

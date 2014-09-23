@@ -570,6 +570,19 @@ string Wiki::LoadWikiText(WikiEntryPtr wikiEntry)
                     }
                     fileContents += "</ul>\n";
                 }
+
+                vector<StatusUpdatePtr> statuses;
+                db->LoadStatusUpdatesForImage(statuses, imagename);
+                fileContents += "<div>";
+                TreeBuilderWiki treeBuilder(google_maps_api_key, wikidb);
+                {
+                    MarkedUpTextParser treeParser;
+                    treeParser.Parse(treeBuilder, buffer,length);
+                }
+                stringstream os;
+                HTMLOutputterWikiString outputter(os, WikiPtr(this), wikiname);
+                fileContents += os.str();
+                fileContents += "</div>";
             }
         }
     }
