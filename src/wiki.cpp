@@ -824,7 +824,7 @@ void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t l
         os << "  <a class=\"u-email email\" href=\"mailto:danlyke@flutterby.com\">danlyke@flutterby.com</a>,<br /> \n";
         os << "  <span class=\"p-tel tel\">415-342-5180</span> (cell)<br />\n";
         os << "  <span class=\"p-street-address street-address\">10 Mission Drive</span>,<br />\n";
-        os << "  <span class=\"p-locality locality\">Petaluma</span><br />\n";
+        os << "  <span class=\"p-locality locality\">Petaluma</span>\n";
         os << "  <span class=\"p-region region\">California\n";
         os << "  <span class=\"p-postal-code postal-code\">94952</span>\n";
         os << "  <span class=\"p-country-name country-name \">US</span>\n";
