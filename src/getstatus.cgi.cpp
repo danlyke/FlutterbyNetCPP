@@ -81,6 +81,22 @@ int main(int argc, char**argv, char **env)
     sql += " ORDER BY id DESC LIMIT " + to_string(limit);
     db->Load(statuses, sql.c_str());
 
+    for (auto status = statuses.begin(); status != status.end(); ++status)
+    {
+        cout << "<article class=\"h-entry\"><p><a class=\"p-author h-card\" \n";
+        cout << "href=\"http://www.flutterby.com/User:";
+        cout << (*status)->shortname;
+        cout << "\">";
+        cout << (*status)->name;
+        cout << "</a>\n<a href=\"/status/id/";
+        cout << (*status)->xid;
+        cout << "\"><time class=\"dt-published\" datetime=\"";
+        cout << (*status)->entered;
+        cout << "\">";
+        cout << (*status)->entered;
+        cout << "</time></a> &mdash; <small>\n";
+
+
     cout <<
     return 0;
 }
