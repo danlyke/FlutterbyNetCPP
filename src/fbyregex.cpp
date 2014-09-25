@@ -188,3 +188,22 @@ std::string subst(const char *input, size_t input_length,
 }
 
 
+std::vector<std::string> &split(Regex &regex, std::string str, std::vector<std::string> &elems)
+{
+    RegexMatch match;
+    const char *data = str.data();
+    size_t length = str.length();
+
+    while (length > 0 && regex.Match(data, length, match))
+    {
+        elems.push_back(std::string(data, match.Start(0)));
+        data += match.End(0);
+        length -= match.End(0);
+    }
+    if (length > 0)
+    {
+        elems.push_back(std::string(data, length));
+    }
+    return elems;
+}
+

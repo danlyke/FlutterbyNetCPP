@@ -82,5 +82,14 @@ std::string subst(const char *input,
 std::string subst(const char *input, size_t input_length,
                   const Regex &regex,
                   const std::string &replacement);
+
+std::vector<std::string> &split(Regex &regex, std::string str, 
+                                std::vector<std::string> &elems);
+inline std::vector<std::string> split(Regex &regex, std::string str)
+{
+    std::vector<std::string> elems;
+    split(regex, str, elems);
+    return elems;
+}
 #endif /* ifndef REGEXMATCH_H_INCLUDED */
                   

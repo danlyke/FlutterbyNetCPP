@@ -969,7 +969,7 @@ void Wiki::GetImageHTML(ostream &os,
 
 
     bool hasImage = wikidb->LoadImage(img, imagename);
-    vector<string> notes = split(text, '|');
+    vector<string> notes(split('|', text));
     string align;
     string desc;
     string width;

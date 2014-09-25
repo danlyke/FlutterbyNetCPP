@@ -26,7 +26,7 @@ const char *html_header =
     "</style>\n"
     "\n"
     "<link rel=\"icon\" href=\"/favicon.ico\" type=\"image/ico\"></link>\n"
-    "<script type=\"text/javascript\" src=\"http://maps.google.com/maps/api/js?sensor=false&v=3.6&key=AIzaSyB7waN-qxOPaSUNi58cBpy0Uhknzx0JMPs\"></script>\n"
+    "<script type=\"text/javascript\" src=\"http://maps.google.com/maps/api/js?sensor=false&amp;v=3.6&key=AIzaSyB7waN-qxOPaSUNi58cBpy0Uhknzx0JMPs\"></script>\n"
     "<script type=\"text/javascript\" src=\"js/fby/maputils.js\"></script>\n"
     "<script type=\"text/javascript\">//<![CDATA[\n"
     "var mapIcons = {};function addLoadEvent(func) {var oldonload = window.onload;if (typeof oldonload == 'function') {window.onload= function() {oldonload();func();};} else {window.onload = func;}}\n"
@@ -45,7 +45,7 @@ const char *html_header =
     "<body>\n"
     "\n"
     "<form method=\"POST\">\n"
-    "<input name=\"q\" type=\"text\"><input type=\"submit\" name=\"go\" value=\"search\" />\n"
+    "<input name=\"q\" type=\"text\" /><input type=\"submit\" name=\"go\" value=\"search\" />\n"
     "</form>\n"
     "<div class=\"content\">\n";
 
@@ -132,9 +132,9 @@ int main(int argc, char**argv, char **env)
             cout << (*status)->latitude;
             cout << "</span>,<span class=\"p-longitude\">";
             cout << (*status)->longitude;
-            cout << "</span></span>)";
+            cout << "</span></span></span>)";
         }
-        cout << "</small><div class=\"e-content\">";
+        cout << "</small></p><div class=\"e-content\">";
 
         if (!((*status)->imagename.empty()))
         {
@@ -158,16 +158,15 @@ int main(int argc, char**argv, char **env)
                 cout << (*status)->imagename;
                 cout << "\"><img src=\"http://www.flutterby.net/";
                 cout << filename;
-                cout <<"\" width=";
+                cout <<"\" width=\"";
                 cout << imageInstance->width;
-                cout << " height=";
+                cout << "\" height=\"";
                 cout << imageInstance->height;
-                cout << " align=left></a>\n";
+                cout << "\" align=left /></a>\n";
             }
         }
-        cout << "<div class=\"e-content\">";
         cout << HTMLQuote((*status)->status);
-        cout << "<br clear=\"left\"></div></article>\n";
+        cout << "<br clear=\"left\" /></div></article>\n";
     }
 
     cout << "</body>\n</html>\n";

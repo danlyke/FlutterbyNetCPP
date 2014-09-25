@@ -248,7 +248,8 @@ StatusUpdateWithName() : FbyORM(BASEOBJINIT(StatusUpdateWithName)),
         xid(),
         publishdelay(),
         twitterid(),
-        name()
+        name(),
+        shortname()
         {}
     int id; // SQL INTEGER PRIMARY KEY,
     std::string status; // SQL TEXT
@@ -276,7 +277,9 @@ StatusUpdateWithName() : FbyORM(BASEOBJINIT(StatusUpdateWithName)),
     std::string xid; // SQL text                         
     double publishdelay; // SQL double precision             default 0
     std::string twitterid; // SQL text
+
     std::string name; // SQL text
+    std::string shortname; // SQL text
 };
 
 

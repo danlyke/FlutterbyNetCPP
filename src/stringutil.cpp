@@ -73,3 +73,41 @@ std::string ConvertImageNameToDescription(const std::string &name)
     return result;
 }
 
+std::string HTMLQuote(const std::string &s)
+{
+    std::string html;
+
+    size_t pos = 0;
+    size_t index;
+    while (std::string::npos != (index = s.find_first_of("&<>'\"", pos)))
+    {
+        html += s.substr(pos, index - pos);
+        switch (s[index])
+        {
+        case '&' :
+            html += "&amp;";
+            break;
+        case '<' :
+            html += "&lt;";
+            break;
+        case '>' :
+            html += "&gt;";
+            break;
+        case '\'' :
+            html += "&apos;";
+            break;
+        case '"' :
+            html += "&quot;";
+            break;
+        default:
+            break;
+        }
+        pos = index + 1;
+    }
+
+    if (pos < s.length())
+    {
+        html += s.substr(pos);
+    }
+    return html;
+}

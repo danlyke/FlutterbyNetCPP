@@ -3,7 +3,7 @@
 #include <vector>
 #include <sstream>
 
-inline std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
+inline std::vector<std::string> &split(char delim, const std::string &s, std::vector<std::string> &elems) {
     std::stringstream ss(s);
     std::string item;
     while (std::getline(ss, item, delim)) {
@@ -13,13 +13,15 @@ inline std::vector<std::string> &split(const std::string &s, char delim, std::ve
 }
 
 
-inline std::vector<std::string> split(const std::string &s, char delim) {
+inline std::vector<std::string> split(char delim, const std::string &s) {
     std::vector<std::string> elems;
-    split(s, delim, elems);
+    split(delim, s, elems);
     return elems;
 }
 
 size_t RemoveCRs(char *buffer, size_t length);
 std::string ConvertImageNameToDescription(const std::string &name);
+
+std::string HTMLQuote(const std::string &s);
 
 #endif /* #ifndef STRINGUTIL_H_INCLUDED */
