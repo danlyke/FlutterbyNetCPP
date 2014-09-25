@@ -1,8 +1,17 @@
+#include "cgicc/Cgicc.h"
+#include "cgicc/HTTPHTMLHeader.h"
+// #include "cgicc/HTMLClasses.h"
+
+
 #include "fbydb.h"
 #include "fbyregex.h"
 #include "wikiobjects.h"
 #include "stringutil.h"
+
+#include <vector>
 using namespace std;
+
+
 
 
 const char *html_header =
@@ -11,7 +20,7 @@ const char *html_header =
     "<head>\n"
     "    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n"
     "	<title>Status</title>\n"
-    "<style type=\"text/css\">\@import \"/screen.css\";\n"
+    "<style type=\"text/css\">@import \"/screen.css\";\n"
     "#e-content { border: solid  1px #000;\n"
     "	background-color: #fdf; }\n"
     "</style>\n"
@@ -46,34 +55,43 @@ int main(int argc, char**argv, char **env)
 {
     FbyDBPtr db(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke'"));
     int limit = 50;
+    cgicc::Cgicc cgi;
 
     vector<StatusUpdateWithNamePtr> statuses;
 
     string sql("SELECT statusupdate.*, person.name AS name FROM statusupdate, person WHERE statusupdate.person_id=person.id");
 
-    if ($cgi->param("id"))
+    string param_id = cgi("id");
+    if (!param_id.empty())
     {
-        vector<string> a(split(cgiparam("q"), ","));
+        vector<string> a(split(',', param_id));
         
         sql += " AND (";
         for (auto s = a.begin(); s != a.end(); ++s)
         {
             if (s != a.begin()) sql += " OR ";
-            sql += "xid=" + dbh->quote(s);
+            sql += "xid=" + db->Quote(*s);
         }
+        sql += ")";
     }
-    if ($cgi->param("user"))
+
+    string param_user = cgi("user");
+    if (!param_user.empty())
     {
-        sql += " AND (person.shortname=" + dbh->quote(cgi->param("user"))
-            + " OR person.name=" + dbh->quote(cgi->param("user")) + ")";
+        sql += " AND (person.shortname=" + db->Quote(param_user)
+            + " OR person.name=" + db->Quote(param_user) + ")";
     }
-    elsif (cgi->param("q"))
+
+    string param_q = cgi("q");
+    Regex regW("\\W+");
+    
+    if (!param_q.empty())
     {
-        vector<string> a(split /\W+/, cgi->param("q"));
+        vector<string> a(split(regW, param_q));
         for (auto s = a.begin(); s != a.end(); ++s)
         {
             sql += " AND to_tsvector('english',status) @@ to_tsquery('english',"
-                + $dbh->quote($_).")";
+                + db->Quote(*s) + ")";
         }
         limit = 50;
     }
@@ -81,7 +99,11 @@ int main(int argc, char**argv, char **env)
     sql += " ORDER BY id DESC LIMIT " + to_string(limit);
     db->Load(statuses, sql.c_str());
 
-    for (auto status = statuses.begin(); status != status.end(); ++status)
+
+    cout << cgicc::HTTPHTMLHeader() << endl;
+    cout << html_header;
+
+    for (auto status = statuses.begin(); status != statuses.end(); ++status)
     {
         cout << "<article class=\"h-entry\"><p><a class=\"p-author h-card\" \n";
         cout << "href=\"http://www.flutterby.com/User:";
@@ -91,13 +113,64 @@ int main(int argc, char**argv, char **env)
         cout << "</a>\n<a href=\"/status/id/";
         cout << (*status)->xid;
         cout << "\"><time class=\"dt-published\" datetime=\"";
-        cout << (*status)->entered;
+        cout << TimeToTextDate((*status)->entered);
         cout << "\">";
-        cout << (*status)->entered;
+        cout << TimeToTextDate((*status)->entered);
         cout << "</time></a> &mdash; <small>\n";
 
+        cout << "twitter&nbsp;(" << (*status)->twitter_update << "/" << (*status)->twitter_updated << ") ";
+        cout << "facebook&nbsp;(" << (*status)->facebook_update << "/" << (*status)->facebook_updated << ") ";
+        cout << "flutterby&nbsp;(" << (*status)->flutterby_update << "/" << (*status)->flutterby_updated << ") ";
+        cout << "identica&nbsp;(" << (*status)->identica_update << "/" << (*status)->identica_updated << ") ";
 
-    cout <<
+        if (!((*status)->twitterid.empty()))
+            cout <<  "TwitterID: " << (*status)->twitterid;
+
+        if ((*status)->latitude && (*status)->longitude)
+        {
+            cout << "&mdash; Lat,Lon:&nbsp;(<span class=\"p-location\"><span class=\"h-geo\"><span class=\"p-latitude\">";
+            cout << (*status)->latitude;
+            cout << "</span>,<span class=\"p-longitude\">";
+            cout << (*status)->longitude;
+            cout << "</span></span>)";
+        }
+        cout << "</small><div class=\"e-content\">";
+
+        if (!((*status)->imagename.empty()))
+        {
+            sql = "SELECT * FROM imageinstance WHERE imagename="
+                + db->Quote((*status)->imagename)
+                + " ORDER BY WIDTH LIMIT 1";
+            ImageInstancePtr imageInstance;
+            if (db->LoadOne(imageInstance, sql, false))
+            {
+                string filename(imageInstance->filename);
+                
+                size_t pos = filename.find("public_html");
+                if (pos != string::npos)
+                {
+                    filename.erase(0,pos);
+                    pos = filename.find('/');
+                    if (pos != string::npos)
+                        filename.erase(0,pos);
+                }
+                cout << "<a href=\"http://www.flutterby.net/Image:";
+                cout << (*status)->imagename;
+                cout << "\"><img src=\"http://www.flutterby.net/";
+                cout << filename;
+                cout <<"\" width=";
+                cout << imageInstance->width;
+                cout << " height=";
+                cout << imageInstance->height;
+                cout << " align=left></a>\n";
+            }
+        }
+        cout << "<div class=\"e-content\">";
+        cout << HTMLQuote((*status)->status);
+        cout << "<br clear=\"left\"></div></article>\n";
+    }
+
+    cout << "</body>\n</html>\n";
     return 0;
 }
 
