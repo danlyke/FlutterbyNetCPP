@@ -48,6 +48,7 @@ int main(int ac, char* av[])
             ("scanimages", "just do the images files")
             ("scandplfiles", "just do the wiki files")
             ("rebuilddetached", "Fork and do everything")
+            ("teststuff", "Random hook to hang weird stuff off")
 
             ("getwikifiles", "get a list of all of the wiki files")
             ("writewikifile", po::value<string>(&target_file),
@@ -180,6 +181,9 @@ int main(int ac, char* av[])
         }
         if (vm.count("scanwikifiles")) {
             wiki->ScanWikiFiles();
+        }
+        if (vm.count("teststuff")) {
+            wiki->TestStuff();
         }
         if (vm.count("scanwikifile")) {
             wiki->ScanWikiFileForLinks(target_file.c_str());

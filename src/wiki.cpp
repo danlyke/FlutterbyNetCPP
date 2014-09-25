@@ -30,7 +30,7 @@ using namespace boost::iostreams ;
 namespace fs = boost::filesystem;
 
 string dotWiki(".wiki");
-bool debug_output(false);
+bool debug_output(true);
 
 #include "wikidb.h"
 
@@ -149,50 +149,18 @@ string Wiki::LoadFileToString(const char *filename)
     return s;
 }
 
-void Wiki::ScanWikiFileForLinks(const char *filename)
+void Wiki::ScanWikiEntryForLinks(WikiEntryPtr wikiEntry)
 {
     TreeBuilderWiki treeBuilder(google_maps_api_key, wikidb);
-    string thisWikiName(filename);
-    size_t pos;
-    pos = thisWikiName.rfind('/');
-    if (pos != string::npos) thisWikiName.erase(0, pos + 1);
-    pos = thisWikiName.rfind('.');
-    if (pos != string::npos)
-    {
-        if (thisWikiName.substr(pos) != dotWiki)
-            return;
-        if (thisWikiName[0] == '.')
-            return;
 
-        thisWikiName.erase(pos);
-    }
-    thisWikiName = NormalizeWikiName(thisWikiName);
-
-    string buffer = LoadFileToString(filename);
+    string buffer = LoadWikiText(wikiEntry);
     {
         MarkedUpTextParser treeParser;
         treeParser.Parse(treeBuilder, buffer.c_str(),buffer.length());
     }
 
-
-    WikiEntryPtr wikiEntry;
-
-    if (debug_output)
-        cout << "Should be creating '" << thisWikiName << "'" << endl;
-
-    if (wikidb->LoadOrCreateWikiEntry(wikiEntry, thisWikiName)
-        || wikiEntry->inputname.empty())
-    {
-        if (debug_output)
-            cout << "Marking '" << thisWikiName << "' dirty, wasLoaded is " << wikiEntry->WasLoaded() << endl;
-
-        wikiEntry->inputname = filename;
-        wikiEntry->needsContentRebuild = true;
-        wikidb->WriteWikiEntry(wikiEntry);
-    }
-    
     vector<WikiEntryReferencePtr> wikiEntryReferences;
-    wikidb->LoadWikiReferencesFrom(wikiEntryReferences, thisWikiName);
+    wikidb->LoadWikiReferencesFrom(wikiEntryReferences, wikiEntry->wikiname);
 
     vector<string> currentLinks;
     for_each(wikiEntryReferences.begin(),
@@ -225,14 +193,52 @@ void Wiki::ScanWikiFileForLinks(const char *filename)
     for_each(delLinks.begin(), delLinks.end(),
              [&](const string &wikiname)
              {
-                 this->wikidb->DeleteWikiReference(thisWikiName, wikiname);
+                 this->wikidb->DeleteWikiReference(wikiEntry->wikiname, wikiname);
              });
 
     for_each (addLinks.begin(), addLinks.end(),
              [&](const string &wikiname)
               {
-                  this->wikidb->AddWikiReference(thisWikiName, wikiname);
+                  this->wikidb->AddWikiReference(wikiEntry->wikiname, wikiname);
               });
+}
+
+void Wiki::ScanWikiFileForLinks(const char *filename)
+{
+    string thisWikiName(filename);
+    size_t pos;
+    pos = thisWikiName.rfind('/');
+    if (pos != string::npos) thisWikiName.erase(0, pos + 1);
+    pos = thisWikiName.rfind('.');
+    if (pos != string::npos)
+    {
+        if (thisWikiName.substr(pos) != dotWiki)
+            return;
+        if (thisWikiName[0] == '.')
+            return;
+
+        thisWikiName.erase(pos);
+    }
+    thisWikiName = NormalizeWikiName(thisWikiName);
+
+    WikiEntryPtr wikiEntry;
+
+    if (debug_output)
+        cout << "Should be creating '" << thisWikiName << "'" << endl;
+
+    if (wikidb->LoadOrCreateWikiEntry(wikiEntry, thisWikiName)
+        || wikiEntry->inputname.empty())
+    {
+        if (debug_output)
+            cout << "Marking '" << thisWikiName << "' dirty, wasLoaded is " << wikiEntry->WasLoaded() << endl;
+
+        wikiEntry->inputname = filename;
+        wikiEntry->needsContentRebuild = true;
+        wikidb->WriteWikiEntry(wikiEntry);
+    }
+
+    ScanWikiEntryForLinks(wikiEntry);
+    
 }
 
 
@@ -572,17 +578,13 @@ string Wiki::LoadWikiText(WikiEntryPtr wikiEntry)
                 }
 
                 vector<StatusUpdatePtr> statuses;
-                db->LoadStatusUpdatesForImage(statuses, imagename);
-                fileContents += "<div>";
-                TreeBuilderWiki treeBuilder(google_maps_api_key, wikidb);
+                wikidb->LoadStatusUpdatesForImage(statuses, imagename);
+                for (auto status = statuses.begin();
+                     status != statuses.end();
+                     ++status)
                 {
-                    MarkedUpTextParser treeParser;
-                    treeParser.Parse(treeBuilder, buffer,length);
+                    fileContents += "\n\n" + (*status)->status + "\n\n";
                 }
-                stringstream os;
-                HTMLOutputterWikiString outputter(os, WikiPtr(this), wikiname);
-                fileContents += os.str();
-                fileContents += "</div>";
             }
         }
     }
@@ -1641,10 +1643,33 @@ void Wiki::RebuildOutputFiles()
         wikientry != wikientries.end();
         ++wikientry)
     {
-        ScanWikiFileForLinks((*wikientry)->inputname);
+        try {
+            ScanWikiFileForLinks((*wikientry)->inputname);
+        }
+        catch (FbyBaseExceptionPtr e)
+        {
+            cerr << e->file << ":" << e->line << " : " << e->Message << endl;
+        }
     }
     RebuildDirtyFiles(staging_area);
     wikidb->EndTransaction();
 }
 
 
+void Wiki::TestStuff()
+{
+    string s("Sunday morning's sunrise.");
+
+    TreeBuilderWiki treeBuilder(google_maps_api_key, wikidb);
+    {
+        cout << "Attempting to parse: '" << s << "'" << endl;
+        MarkedUpTextParser treeParser;
+        treeParser.Parse(treeBuilder,
+                         s.c_str(),
+                         s.size());
+    }
+    stringstream os;
+    HTMLOutputterWikiString outputter(os, WikiPtr(this),  string("Random Name"));
+    treeBuilder.AsHTML(outputter);
+    cout << os.str() << endl;;
+}

@@ -1,102 +1,17 @@
-#include <iostream>
-#include <vector>
-#include <string>
-
-#include "cgicc/Cgicc.h"
-#include "cgicc/HTTPHTMLHeader.h"
-#include "cgicc/HTMLClasses.h"
 #include "fbydb.h"
 #include "fbyregex.h"
 #include "wikiobjects.h"
-
-using namespace std;
-using namespace cgicc;
-
-int 
-main(int argc, 
-     char **argv)
-{
-//   try {
-      Cgicc cgi;
-
-      // Send HTTP header
-      cout << HTTPHTMLHeader() << endl;
-
-      // Set up the HTML document
-      cout << html() << head(title("Statuses")) << endl;
-      cout << body() << endl;
-
-      // Print out the submitted element
-      form_iterator name = cgi.getElement("name");
-      if(name != cgi.getElements().end()) {
-         cout << "Your name: " << **name << endl;
-      }
-
-      cout << "<dl>";
-//      FbyDBPtr db(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user='flutterbynet' password='flutterbynet'"));
-      FbyDBPtr db(FBYNEW FbyPostgreSQLDB("postgresql://flutterbynet:flutterbynet@localhost/flutterbynet"));
-
-      string sql("SELECT statusupdate.*, person.name AS name FROM statusupdate, person WHERE statusupdate.person_id=person.id");
-      vector<StatusUpdateWithNamePtr> statuses;
-
-      sql += " ORDER BY statusupdate.id DESC LIMIT 50";
-      db->Load(statuses, sql.c_str());
-
-      for (auto status = statuses.begin(); status != statuses.end(); ++status)
-      {
-          cout <<  "<dt style=\"clear: left\"><strong>"
-               << (*status)->name
-               << "</strong> - <a href=\"./getstatus.cgi?id="
-               << (*status)->xid
-               << "\">"
-               << (*status)->entered
-               << "</a> &mdash; ";
-          cout <<  "<small>";
-          cout << " twitter (" << (*status)->twitter_update
-               << "/" << (*status)->twitter_updated << ") ";
-          cout << " facebook (" << (*status)->facebook_update
-               << "/" << (*status)->facebook_updated << ") ";
-          cout << " flutterby (" << (*status)->flutterby_update
-               << "/" << (*status)->flutterby_updated << ") ";
-          cout << endl;
-          if (!(*status)->twitterid.empty())
-              cout << "TwitterID: " << (*status)->twitterid;
-          cout << "</small></td><dd>";
-          cout << (*status)->status;
-          cout << "</dd>";
-      }
-      cout << "</dl>";
-
-      // Close the HTML document
-      cout << body() << html();
-//   }
-//   catch(exception& e) {
-//      // handle any errors - omitted for brevity
-//   }
-}
-
-#if 0
-#include "fbydb.h"
-#include "fbyregex.h"
-#include "wikiobjects.h"
-#include <stdio.h>
 using namespace std;
 
 int main(int argc, char**argv, char **env)
 {
     FbyDBPtr db(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke'"));
 
-    printf("Content-Type: text/plain\n\n");
-    printf("Environment:\n");
-    for (int i = 0; env[i]; ++i)
-    {
-        printf("   %s\n",env[i]);
-    }
 
     vector<StatusUpdatePtr> statuses;
 
     string sql("...");
-//    db->Load(statuses, sql.c_str());
+    db->Load(statuses, sql.c_str());
     return 0;
 }
 
@@ -164,7 +79,8 @@ int main(int argc, char**argv, char **env)
 //                           'danlyke', 'danlyke')
 //    || die "Unable to connect\n";
 //
-//my $sql = 'SELECT statusupdate.*, person.name AS name FROM statusupdate, person WHERE statusupdate.person_id=person.id';
+//my $sql = 'SELECT statusupdate.*, person.name AS name FROM statusupdate, person WHERE statusupdate.pe\
+//rson_id=person.id';
 //my $limit = 50;
 //
 //if ($cgi->param('id'))
@@ -186,7 +102,8 @@ int main(int argc, char**argv, char **env)
 //
 //print $cgi->header;
 //print <<EOF;
-//<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">                                                                                  
+//<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml\
+//1-transitional.dtd">                                                                                  
 //<html xmlns="http://www.w3.org/1999/xhtml">                                                           
 //<head>                                                                                                
 //    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />                             
@@ -226,7 +143,8 @@ int main(int argc, char**argv, char **env)
 //    $entry =~ s/\r\n(\r\n)+/\<p\/\>/g;
 //    $entry =~ s/\r\r+/\<p\/\>/g;
 //    $entry =~ s/\n\n+/\<p\/\>/g;
-//    print "<dt style=\"clear: left\"><strong>$row->{name}</strong> - <a href=\"./getstatus.pl?id=$row    ->{xid}\">$row->{entered}</a> &mdash; ";
+//    print "<dt style=\"clear: left\"><strong>$row->{name}</strong> - <a href=\"./getstatus.pl?id=$row\
+//    ->{xid}\">$row->{entered}</a> &mdash; ";
 //    print '<small>';
 //    for (qw/twitter facebook flutterby identica/)
 //    {
@@ -238,7 +156,8 @@ int main(int argc, char**argv, char **env)
 //    my $outputimage;
 //    if ($row->{imagename})
 //    {
-//        my $sql = 'SELECT * FROM imageinstance WHERE imagename='.$dbh->quote($row->{imagename}).' ORDER BY width LIMIT 1';
+//        my $sql = 'SELECT * FROM imageinstance WHERE imagename='.$dbh->quote($row->{imagename}).' ORD\
+//ER BY width LIMIT 1';
 //        my $stinst = $dbh->prepare($sql);
 //
 //        $stinst->execute();
@@ -246,7 +165,8 @@ int main(int argc, char**argv, char **env)
 //        {
 //            my $thumb = $thumbnail->{filename};
 //            $thumb =~ s/^.*public_html.*?\///;
-//            print "<a href=\"http://www.flutterby.net/Image:$row->{imagename}\"><img src=\"http://www.flutterby.net/$thumb\" "
+//            print "<a href=\"http://www.flutterby.net/Image:$row->{imagename}\"><img src=\"http://www\
+//.flutterby.net/$thumb\" "
 //                ."width=$thumbnail->{width} height=$thumbnail->{height} align=left></a>\n";
 //            $outputimage = 1;
 //        }
@@ -264,4 +184,3 @@ int main(int argc, char**argv, char **env)
 //
 //$dbh->disconnect();
 
-#endif
