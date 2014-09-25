@@ -35,6 +35,8 @@ public:
                       const std::string & imagename,
                       const string &text);
 
+    void ScanWikiEntryForLinks(WikiEntryPtr wikiEntry);
+
     void ScanWikiFileForLinks(const char *filename);
     void ScanWikiFilesForLinks(const char *inputDir, const char *stagingDir);
     void ParseAndOutputFile(const char *inputfile, const char *outputdir);
@@ -97,6 +99,10 @@ public:
 
     void ScanWikiFiles_NOCHANGES();
     void ScanDPLFiles_NOCHANGES();
+
+
+// Random
+    void TestStuff();
 
 private:
     string staging_area;
