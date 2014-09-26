@@ -121,7 +121,6 @@ int main(int argc, char**argv, char **env)
         cout << "twitter&nbsp;(" << (*status)->twitter_update << "/" << (*status)->twitter_updated << ") ";
         cout << "facebook&nbsp;(" << (*status)->facebook_update << "/" << (*status)->facebook_updated << ") ";
         cout << "flutterby&nbsp;(" << (*status)->flutterby_update << "/" << (*status)->flutterby_updated << ") ";
-        cout << "identica&nbsp;(" << (*status)->identica_update << "/" << (*status)->identica_updated << ") ";
 
         if (!((*status)->twitterid.empty()))
             cout <<  "TwitterID: " << (*status)->twitterid;
