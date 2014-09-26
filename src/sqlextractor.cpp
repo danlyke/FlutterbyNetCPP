@@ -19,7 +19,7 @@ Regex regexMatchClass1("regexMatchClass",
                  "^\\s*FBYCLASS\\s*\\(\\s*(.*?)\\s*\\)\\s*\\:\\s*public \\s*FbyORM"
     REGEXBLOCK_NOSQL);
 Regex regexMatchMember("regexMatchMember",
-                       "^\\s*(int|float|double|long|string|std\\:\\:string|time_t)\\s+(\\w+)\\s*;\\s*//\\s*SQL\\s+(.*?)\\,?\\s*(--.*)?$");
+                       "^\\s*(bool|int|float|double|long|string|std\\:\\:string|time_t)\\s+(\\w+)\\s*;\\s*//\\s*SQL\\s+(.*?)\\,?\\s*(--.*)?$");
 Regex regexMatchEnd("regexMatchEnd",
                     "^\\s*\\}\\s*\\;");
 
@@ -48,6 +48,7 @@ void PrintSQLDefinition(ostream &ossql, ostream &oscpp, const string &currentCla
 {
     map<string, string> textToMember;
 
+    textToMember["bool"] = "wrapper_stobool";
     textToMember["int"] = "wrapper_stoi";
     textToMember["long"] = "wrapper_stol";
     textToMember["long"] = "long std::stoll";
@@ -60,6 +61,7 @@ void PrintSQLDefinition(ostream &ossql, ostream &oscpp, const string &currentCla
 
     map<string, string> memberToText;
 
+    memberToText["bool"] = "to_string";
     memberToText["int"] = "to_string";
     memberToText["long"] = "to_string";
     memberToText["long"] = "to_string";

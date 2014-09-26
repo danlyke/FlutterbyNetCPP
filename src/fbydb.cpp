@@ -53,6 +53,13 @@ string TimeToTextDate(time_t t)
 }
 
 
+bool wrapper_stobool(const string &in)
+{
+    if (in.empty() || in == "f" || in == "0")
+        return false;
+    return true;
+}
+
 
 int wrapper_stoi(const string &in)
 {

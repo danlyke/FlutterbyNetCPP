@@ -8,6 +8,7 @@
 
 extern time_t TextDateToTime(const std::string &textDate);
 extern std::string TimeToTextDate(time_t t);
+bool wrapper_stobool(const std::string &in);
 int wrapper_stoi(const std::string &in);
 long wrapper_stol(const std::string &in);
 long wrapper_stoll(const std::string &in);
