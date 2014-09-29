@@ -18,7 +18,7 @@ EXESOURCES=test_file.cpp test_lambda.cpp test_flex.cpp test_tester.cpp test_rese
 # copychangedfiles.cpp
 # test_subst.cpp
 
-EXE2SOURCES= fby.cpp fby_test.cpp test_fbydb.cpp scaninputwikifiles.cpp scanimages.cpp parsewikifiletostaging.cpp test_regexparse.cpp parsewikifilesforlinks.cpp scanwikifilesforlinks.cpp rebuilddirtyfiles.cpp getstatus.cgi.cpp test_fbyregex.cpp
+EXE2SOURCES= fby.cpp fby_test.cpp test_fbydb.cpp scaninputwikifiles.cpp scanimages.cpp parsewikifiletostaging.cpp test_regexparse.cpp parsewikifilesforlinks.cpp scanwikifilesforlinks.cpp rebuilddirtyfiles.cpp getstatus.cgi.cpp setstatus.cgi.cpp test_fbyregex.cpp
 
 
 OUTPUTDIRECTORIES= ../obj ../bin

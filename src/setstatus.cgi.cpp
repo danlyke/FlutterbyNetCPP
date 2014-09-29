@@ -56,31 +56,26 @@ const char *html_header =
 
 int main(int argc, char**argv, char **env)
 {
-    FbyDBPtr db(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke'"));
+     FbyDBPtr db(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke'"));
     int limit = 50;
     cgicc::Cgicc cgi;
 
+    my param_status = cgi("status") if (defined(cgi("status")));
 
-my $status = $cgi->param('status') if (defined($cgi->param('status')));
 
-foreach ($cgi->param)
-{
-    print "$_ : ".$cgi->param($_)."<br>\n";
-}
-
-if (defined($status) && $status !~ /^\s*$/ && $cgi->param('pw') eq 'geflertz')
-{
+    if (defined(param_status) && param_status !~ /^\s*$/ && cgi("pw") eq 'geflertz')
+    {
     my ($imagename, $thumbpath, $thumbwidth, $thumbheight);
 
     my $needsrebuild;
-    if (defined($cgi->param('photofile'))
+    if (defined(cgi("photofile"))
         && defined(my $ufh = $cgi->upload('photofile'))
-        && defined($cgi->param('photoname'))
-        && $cgi->param('photoname') ne '')
+        && defined(cgi("photoname"))
+        && cgi("photoname") ne '')
     {
         my $cwd = getcwd;
-        $imagename = $cgi->param('photoname');
-        my $writecmd = '/home/danlyke/bin/fby writeimagefile "'.$cgi->param('photoname').'"';
+        $imagename = cgi("photoname");
+        my $writecmd = '/home/danlyke/bin/fby writeimagefile "'.cgi("photoname").'"';
         print "Getting uploaded photo: $writecmd<br>\n";
         if (open my $outfh, '|-', $writecmd)
         {
@@ -103,17 +98,13 @@ if (defined($status) && $status !~ /^\s*$/ && $cgi->param('pw') eq 'geflertz')
     }
 
     
-    print "<b>Posting status: $status</b><br>\n";
-    use DBI;
-    my $dbh = DBI->connect('DBI:Pg:dbname=flutterbynet;host=localhost',
-			   'danlyke', 'danlyke')
-	|| die "Unable to connect\n";
+    print "<b>Posting status: param_status</b><br>\n";
     
-    my $lat = $cgi->param('lat');
-    my $lon = $cgi->param('lon');
-    $lat = 0 unless defined($lat) && $lat ne '';
-    $lon = 0 unless defined($lat) && $lon ne '';
-    my $posaccuracy = $cgi->param('posaccuracy');
+    my param_lat = cgi("lat");
+    my $lon = cgi("lon");
+    param_lat = 0 unless defined(param_lat) && param_lat ne '';
+    $lon = 0 unless defined(param_lat) && $lon ne '';
+    my $posaccuracy = cgi("posaccuracy");
     $posaccuracy = 0 if ($posaccuracy eq '');
 
     my @a=(0..9,'a'..'z','A'..'Z');
@@ -121,21 +112,22 @@ if (defined($status) && $status !~ /^\s*$/ && $cgi->param('pw') eq 'geflertz')
 
     my $sql = 'INSERT INTO statusupdate(status,locationset,latitude,longitude,posaccuracy,flutterby_update,twitter_update,facebook_update,identica_update,person_id,imagename, thumbnailpath, thumbnailwidth, thumbnailheight, xid) VALUES('
 	.join(',',
-	      $dbh->quote($status),
-	      (defined($lat) && defined($lon) && $lat ne 0 && $lon ne 0) ? 'true' : 'false',
-	      defined($lat) ? $dbh->quote($lat) : 0,
-	      defined($lon) ? $dbh->quote($lon) : 0,
-	      defined($posaccuracy) ? $dbh->quote($posaccuracy) : 0,
-	      $cgi->param('flutterby') ? 'true' : 'false',
-	      $cgi->param('twitter') ? 'true' : 'false',
-	      $cgi->param('facebook') ? 'true' : 'false',
-	      $cgi->param('identica') ? 'true' : 'false',
+	      db->Quote(param_status),
+	      (defined(param_lat) && defined($lon) && param_lat ne 0 && $lon ne 0) ? 'true' : 'false',
+	      defined(param_lat) ? db->Quote(param_lat
+              ) : 0,
+	      defined($lon) ? db->Quote($lon) : 0,
+	      defined($posaccuracy) ? db->Quote($posaccuracy) : 0,
+	      cgi("flutterby") ? 'true' : 'false',
+	      cgi("twitter") ? 'true' : 'false',
+	      cgi("facebook") ? 'true' : 'false',
+	      cgi("identica") ? 'true' : 'false',
 	      1,
-	      $dbh->quote($imagename),
-	      $dbh->quote($thumbpath),
-	      $dbh->quote($thumbwidth),
-	      $dbh->quote($thumbheight),
-	      $dbh->quote($xid),
+	      db->Quote($imagename),
+	      db->Quote($thumbpath),
+	      db->Quote($thumbwidth),
+	      db->Quote($thumbheight),
+	      db->Quote($xid),
 	)
 	.')';
     $dbh->do($sql)
@@ -153,7 +145,7 @@ if (defined($status) && $status !~ /^\s*$/ && $cgi->param('pw') eq 'geflertz')
     }
 
     print "<p><b>Success: $sql</b></p>\n";
-    $cgi->param('status' => '');
+    cgi("status" => '');
     $dbh->disconnect();
     system('/home/danlyke/bin/fby scanimages >& /dev/null &')
         if $needsrebuild;
@@ -172,7 +164,7 @@ print <<EOF;
     <form method="post" action="/cgi-bin/setstatus.pl" enctype="multipart/form-data">
 EOF
     print $cgi->start_form;
-print "Password: ". $cgi->textfield(-name => 'pw', -default => $cgi->param('pw'));
+print "Password: ". $cgi->textfield(-name => 'pw', -default => cgi("pw"));
 print <<EOF;
 <br>
     <textarea id="status" name="status" rows="4" cols="40"></textarea>
