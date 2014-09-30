@@ -158,7 +158,7 @@ void WikiDB::WriteImageInstance(ImageInstancePtr imageInstance)
 void WikiDB::LoadWikiReferencesFrom(vector<WikiEntryReferencePtr> &wikiEntryReferences, const string &wikiname)
 {
     string sql("SELECT * FROM WikiEntryReference WHERE from_wikiname="
-               + db->Quote(wikiname));
+               + db->Quote(wikiname) + " ORDER BY to_wikiname");
     db->Load(wikiEntryReferences, sql.c_str());
 }
 
@@ -166,7 +166,7 @@ void WikiDB::LoadWikiReferencesFrom(vector<WikiEntryReferencePtr> &wikiEntryRefe
 void WikiDB::LoadWikiReferencesTo(vector<WikiEntryReferencePtr> &wikiEntryReferences, const string &wikiname)
 {
     string sql("SELECT * FROM WikiEntryReference WHERE to_wikiname="
-               + db->Quote(wikiname));
+               + db->Quote(wikiname) + " ORDER BY from_wikiname");
     db->Load(wikiEntryReferences, sql.c_str());
 }
 

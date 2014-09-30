@@ -187,12 +187,12 @@ public:
 WikiEntryReference() :
     FbyORM(BASEOBJINIT(WikiEntryReference)),
         from_wikiname(),
-        to_wikiname(),
-        needsdeletion(false)
+        to_wikiname()
+//        needsdeletion(false)
         {};
     std::string from_wikiname; // SQL TEXT REFERENCES WikiEntry(wikiname), -- key
     std::string to_wikiname; // SQL TEXT REFERENCES WikiEntry(wikiname), -- key
-    bool needsdeletion; // SQL BOOLEAN,
+//    bool needsdeletion; // SQL BOOLEAN,
 };
 // SQL: CREATE UNIQUE INDEX WikiEntryReference_From_To ON WikiEntryReference(from_wikiname, to_wikiname);
 

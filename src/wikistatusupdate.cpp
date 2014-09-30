@@ -82,7 +82,7 @@ void StatusUpdateNode::AsHTML(HTMLOutputter &outputter)
             outputter.AddHTMLNodeEnd(strStrong);
             vector< pair <string, string> > linkAttrs;
             linkAttrs.push_back(pair<string,string>(string("href"),
-                                                    string("/cgi-bin/getstatus.pl?id="+(*update)->xid)));
+                                                    string("/status/id/"+(*update)->xid)));
             outputter.AddHTMLNodeBegin(strA, linkAttrs, false);
             outputter.AddString(TimeToTextDate((*update)->entered));
             outputter.AddHTMLNodeEnd(strA);
