@@ -1089,11 +1089,13 @@ void Wiki::GetImageHTML(ostream &os,
         if (targetExists)
             os <<  "</a>";
 
-        if (!hasImage)
+        if (hasImage)
         {
+            cerr << "Investigating lightbox for " << imagename << endl;
             ImageInstancePtr zoominst(wikidb->ImageInstanceLightboxZoom(img));
             if (ImageInstancePtr() != zoominst)
             {
+                cerr << "Found lightbox for " << imagename << endl;
                 os << "<a href=\"./";
                 os << WebPathFromFilename(zoominst->filename);
                 os << "\" rel=\"lightbox\" caption=\"";
