@@ -63,111 +63,139 @@ int main(int argc, char**argv, char **env)
 
     string param_status = cgi("status");
 
-#if 0
-    if (defined(param_status) && param_status !~ /^\s*$/ && cgi("pw") eq 'geflertz')
+    if ((!param_status.empty()) && cgi("pw") eq 'geflertz')
     {
-        string imagename, thumbpath, thumbwidth, thumbheight;
+        string imagename;
 
         bool needsrebuild(false);
 
-        if (defined(cgi("photofile"))
-            && defined(my $ufh = $cgi->upload('photofile'))
-            && defined(cgi("photoname"))
-            && cgi("photoname") ne '')
+        if ((!cgi("photofile").empty())
+            && (!my $ufh = $cgi->upload('photofile'.empty()))
+            && (!cgi("photoname").empty())
+            && cgi("photoname") != "")
         {
-            my $cwd = getcwd;
-            $imagename = cgi("photoname");
-            my $writecmd = '/home/danlyke/bin/fby writeimagefile "'.cgi("photoname").'"';
-            print "Getting uploaded photo: $writecmd<br>\n";
-            if (open my $outfh, '|-', $writecmd)
+            string cwd(get_current_dir_name());
+            imagename = cgi("photoname");
+            for (i = 0; i < imagename.length(); ++i)
             {
-                my $buffer;
-                binmode $ufh;
-                binmode $outfh;
-                while (read($ufh, $buffer, 16384))
+                if (!(isalnum(imagename[i])
+                      || imagename[i] == '-'
+                      || imagename[i] == '_'))
                 {
-                    print $outfh $buffer;
+                    imagename.erase(i, i+1);
                 }
-                close $outfh;
-                close $ufh;
+            }
+
+            string writecmd("/home/danlyke/bin/fby writeimagefile \"" + imagename + "\"");
+            cout <<  "Getting uploaded photo: $writecmd<br>\n";
+            FILE *outfh(popen(writecmd(imagename.c_str()), "w"));
+            if (outfh)
+            {
+                FormFile formFile;
+                formFile.writeToStream(outfh);
+                fclose(outfh);
             }
             else
             {
-                print "Unable to write image<br>\n";
+                cout <<  "Unable to write image<br>\n";
             }
-            chdir $cwd;
-            $needsrebuild = 1;
+            chdir(cwd.c_str());
+            needsrebuild = true;
         }
 
     
-        print "<b>Posting status: param_status</b><br>\n";
+        cout <<  "<b>Posting status: param_status</b><br>\n";
     
-        my param_lat = cgi("lat");
-        my $lon = cgi("lon");
-        param_lat = 0 unless defined(param_lat) && param_lat ne '';
-        $lon = 0 unless defined(param_lat) && $lon ne '';
-        my $posaccuracy = cgi("posaccuracy");
-        $posaccuracy = 0 if ($posaccuracy eq '');
+        string param_latitude = cgi("lat");
+        string param_longitude = cgi("lon");
+        string posaccuracy = cgi("posaccuracy");
 
-        my @a=(0..9,'a'..'z','A'..'Z');
-        my $xid = join('', map {$a[rand(@a)]} (1..8));
 
-        my $sql = 'INSERT INTO statusupdate(status,locationset,latitude,longitude,posaccuracy,flutterby_update,twitter_update,facebook_update,identica_update,person_id,imagename, thumbnailpath, thumbnailwidth, thumbnailheight, xid) VALUES('
-            .join(',',
-                  db->Quote(param_status),
-                  (defined(param_lat) && defined($lon) && param_lat ne 0 && $lon ne 0) ? 'true' : 'false',
-                  defined(param_lat) ? db->Quote(param_lat
-                      ) : 0,
-                  defined($lon) ? db->Quote($lon) : 0,
-                  defined($posaccuracy) ? db->Quote($posaccuracy) : 0,
-                  cgi("flutterby") ? 'true' : 'false',
-                  cgi("twitter") ? 'true' : 'false',
-                  cgi("facebook") ? 'true' : 'false',
-                  cgi("identica") ? 'true' : 'false',
-                  1,
-                  db->Quote($imagename),
-                  db->Quote($thumbpath),
-                  db->Quote($thumbwidth),
-                  db->Quote($thumbheight),
-                  db->Quote($xid),
-                )
-            .')';
-        $dbh->do($sql)
-                    g	|| print "<p><b>$dbh::errstr</b></p>\n";
+        const char xid_chars[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
+        const char xid[13];
+        for (int i = 0; i < sizeof(xid) - 1; ++i)
+        {
+            xid[i] = xid_chars(rand() % sizeof(xid_chars));
+        }
+        xid[sizeof(xid) - 1] = '\0';
+
+        vector<string> keys;
+        vector<string> values;
+
+        keys.push_back("status");
+        values.push_back(param_status);
+        keys.push_back("locationset");
+        values.push_back((param_latitude.empty() || param_longitude.empty()) ? "0" : "1");
+
+        if (!param_latitude.empty())
+        {
+            keys.push_back("latitude");
+            values.push_back(param_latitude);
+        }
+        if (!param_longitude.empty())
+        {
+            keys.push_back("longitude");
+            values.push_back(param_longitude);
+        }
+        if (!param_posaccuracy.empty())
+        {
+            keys.push_back("posaccuracy");
+            values.push_back(param_posaccuracy);
+        }
+
+        keys.push_back("flutterby_update");
+        values.push_back(param_flutterby_update);
+        keys.push_back("twitter_update");
+        values.push_back(param_twitter_update);
+        keys.push_back("facebook_update");
+        values.push_back(param_facebook_update);
+        keys.push_back("identica_update");
+        values.push_back(param_identica_update);
+
+        keys.push_back("person_id");
+        values.push_back(param_person_id);
+
+        keys.push_back("imagename");
+        values.push_back(param_imagename);
+        keys.push_back("xid");
+        values.push_back(param_xid);
+
+        db->Insert("statusupdate", keys, values);
+
         @a = $dbh->selectrow_array("SELECT CURRVAL(pg_get_serial_sequence('statusupdate', 'id'))");
-        my $recid = $a[0];
+        string recid = $a[0];
         foreach ('flutterby', 'facebook', 'identica', 'twitter')
         {
             if (defined($cgi->param($_)))
             {
-                my $subsql = "INSERT INTO update_$_ (statusupdate_id) VALUES ($recid)";
+                string subsql = "INSERT INTO update_$_ (statusupdate_id) VALUES ($recid)";
                 $dbh->do($subsql)
-                            || print "<p><b>$dbh::errstr</b>: $subsql</p>\n";
+                            || cout <<  "<p><b>$dbh::errstr</b>: $subsql</p>\n";
             }
         }
 
-        print "<p><b>Success: $sql</b></p>\n";
+        cout <<  "<p><b>Success: $sql</b></p>\n";
         cgi("status" => '');
         $dbh->disconnect();
         system('/home/danlyke/bin/fby scanimages >& /dev/null &')
             if $needsrebuild;
     }
 
-    my $imagename;
+    string imagename;
     {
         my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
             localtime(time);
-        $imagename = sprintf("%4.4d-%2.2d-%2.2d-%2.2d-%2.2d.jpg",
+        $imagename = scout << f("%4.4d-%2.2d-%2.2d-%2.2d-%2.2d.jpg",
                              $year + 1900, $mon + 1, $mday, $hour, $min);
     }
 
-    print <<EOF;
+    cout <<  <<EOF;
     <div id="charcount">0</div>
          <form method="post" action="/cgi-bin/setstatus.pl" enctype="multipart/form-data">
          EOF
-         print $cgi->start_form;
-    print "Password: ". $cgi->textfield(-name => 'pw', -default => cgi("pw"));
-    print <<EOF;
+         cout <<  $cgi->start_form;
+    cout <<  "Password: ". $cgi->textfield(-name => 'pw', -default => cgi("pw"));
+    cout <<  <<EOF;
     <br>
          <textarea id="status" name="status" rows="4" cols="40"></textarea>
          <br>
@@ -182,10 +210,10 @@ int main(int argc, char**argv, char **env)
          <br>Photo: <input name="photofile" type="file" />
          <br>Photo Name: <input name="photoname" size="32" value="$imagename" />
          EOF
-         print "<br>".$cgi->submit('Save','save');
-    print $cgi->end_form;
-    print $cgi->hr;
-    print <<EOF;
+         cout <<  "<br>".$cgi->submit('Save','save');
+    cout <<  $cgi->end_form;
+    cout <<  $cgi->hr;
+    cout <<  <<EOF;
     <script type="text/javascript">
 
          (function () {
@@ -200,8 +228,8 @@ int main(int argc, char**argv, char **env)
     </script>
           EOF
 
-          print "\n</div>\n";
-    print $cgi->end_html();
-    print "\n";
+          cout <<  "\n</div>\n";
+    cout <<  $cgi->end_html();
+    cout <<  "\n";
 #endif
 }

@@ -117,6 +117,58 @@ FbyORM::~FbyORM()
 }
 
 
+
+FbyORMAnonymous::FbyORMAnonymous(const char *name, int size) : FbyORM(name, size)
+{
+}
+
+const char **FbyORMAnonymous::MemberNames()
+{
+    static char **names = [NULL];
+    return names;
+}
+const char *FbyORMAnonymous::ClassName()
+{
+    return NULL;
+}
+const char **FbyORMAnonymous::KeyNames()
+{
+    static char **names = [NULL];
+    return names;
+}
+
+FbyORMHash::FbyORMHash() :
+    FbyORMAnonymous(BASEOBJINIT(FbyORMHash)),
+    values()
+{  
+}
+
+void FbyORMHash::AssignToMember(const std::string & memberName,
+                    const std::string & value)
+{
+    values[memberName] = value;
+}
+
+std::string FbyORMHash::AssignFromMember(const std::string &memberName)
+{
+    return values[memberName];
+}
+
+void FbyORMArray::AssignToMember(const std::string & memberName,
+                    const std::string & value)
+{
+    values.push_back(value);
+}
+
+std::string FbyORMArray::AssignFromMember(const std::string &memberName)
+{
+    string str("Attempt to get value from anonymous array in FbyORMArray: " + memberName);
+    THROWEXCEPTION(str);
+}
+
+
+
+
 string FbyDB::Quote(const string &s)
 {
     string r("'");
@@ -255,8 +307,96 @@ void FbyDB::Do(const std::string &s)
     Do(s.c_str());
 }
 
+void FbyDB::Insert(const char *table, std::vector<std::string> &keys, std::vector<std::string> &values)
+{
+    stringstream ss;
+
+    if (keys.size() != values.size())
+    {
+        ss << "Insert into ";
+        ss << table;
+        ss << " key (";
+        ss << keys.size();
+        ss << ") values (";
+        ss << values.size();
+        ss << ")";
+        THROWEXCEPTION(ss.str());
+    }
+    else
+    {
+        ss << "INSERT INTO ";t
+        ss << table;
+        ss << "(";
+
+        for (auto s = keys.begin();
+             s != keys.end();
+             ++s)
+        {
+            if (s != keys.begin()) ss << ",";
+            ss << *s;
+        }
+
+        ss << ") VALUES (";
+        for (auto s = values.begin();
+             s != values.end();
+             ++s)
+        {
+            if (s != keys.begin()) ss << ",";
+            ss << Quote(*s);
+        }
+        ss << ")";
+        Do(ss.str());
+}
+
 
 void FbyDB::Begin() { Do("BEGIN;"); }
 void FbyDB::End() { Do("END;"); }
 
 
+int FbyDB::selectrows_array(virtual std::vector< std::vector< std::string > > > &values, const char *s)
+{
+    vector<FbyORMArrayPtr> array;
+    Load(array, s);
+    values.reserve(array.size());
+    for (auto i = array.begin();
+         i != array.end();
+         ++i)
+    {
+        values.push_back((*i)->values);
+    }
+}
+
+int FbyDB::selectrows_hash(std::vector< std::map< std::string, std::string > > > &values, const char *s)
+{
+   
+}
+
+bool FbyDB::selectrow_array(std::vector< std::string > > &values, const char *s)
+{
+    FbyORMArrayPtr arr;
+    bool loaded(LoadOne(arr, s));
+
+    if (loaded)
+    {
+        values.reserve(arr->values.size());
+        for (auto i = arr->values.begin(); i = arr->values.end(); ++i)
+        {
+            values.push_back(i);
+        }
+    }
+    return arr->values;
+}
+
+bool FbyDB::selectrow_hash(std::map< std::string, std::string > > &values, const char *s)
+{
+    FbyORMHashPtr hash;
+    bool loaded(LoadOne(hash, s));
+    if (loaded)    
+    {
+        for (auto i = hash->values.begin(); i != hash->values.end(); ++i)
+        {
+            values[(*i)->first] = (*i)->second;
+        }
+    }
+    return loaded;
+}

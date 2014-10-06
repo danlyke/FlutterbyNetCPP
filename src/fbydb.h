@@ -49,6 +49,40 @@ public :
     bool WasLoaded() const { return loaded; }
 };
 
+
+FBYCLASS(FbyORMAnonymous) : public FbyORM
+{
+public:
+    FbyORMAnonymous(const char *name, int size);
+    
+    virtual ~FbyORMAnonymous();
+    virtual const char **MemberNames() = 0;
+    virtual const char *ClassName() = 0;
+    virtual const char **KeyNames() = 0;
+};
+
+FBYCLASS(FbyORMHash) : public FbyORMAnonymous
+{
+public:
+    std::map< std::string, std::string > values;
+public:
+    FbyORMHash();
+    void AssignToMember(const std::string & memberName,
+                        const std::string & value);
+    std::string AssignFromMember(const std::string &memberName);
+};
+
+FBYCLASS(FbyORMArray) : pubilc FbyORM
+{
+public:
+    std::vector< std::string > values;
+public:
+    FbyORMHash();
+    void AssignToMember(const std::string & memberName,
+                        const std::string & value);
+    std::string AssignFromMember(const std::string &memberName);
+};
+
 FBYCLASS(FbyStatement) : public FbyHelpers::BaseObj
 {
 public:
@@ -77,6 +111,14 @@ FbyDB(const char *name, int size) : BaseObj(name,size) {};
     virtual void Do(const std::string &s);
     virtual void Begin();
     virtual void End();
+
+    void Insert(const char *table, std::vector<std::string> &keys, std::vector<std::string> &values);
+
+    int selectrows_array(std::vector< std::vector< std::string > > > &values, const char *s);
+    int selectrows_hash(std::vector< std::map< std::string, std::string > > > &values, const char *s);
+
+    bool selectrow_array(std::vector< std::string > > &values, const char *s);
+    bool selectrow_hash(std::map< std::string, std::string > > &values, const char *s);
 
     template <class C1, class C2> void CastCopyArray(DYNARRAY(C1) inData, DYNARRAY(FBYPTR(C2)) &outData)
     {
