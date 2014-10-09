@@ -75,6 +75,33 @@ int main(int /* argc */, const char * const * /* argv */)
         }
     }
 
-    
+    vector < string > a;
+    db->selectrow_array(a, "SELECT * FROM WikiEntry LIMIT 1");
+    cout << "Output from select one wiki entry" << endl;
+    for_each(a.begin(), a.end(),
+             [](const string &s) { cout << "  " << s << endl; });
+
+    vector <vector < string > > aa;
+    db->selectrows_array(aa, "SELECT * FROM WikiEntry");
+    if (a.size() == aa[0].size())
+    {
+        cout << "Got the right number of fields in the first element of selectrows" << endl;
+    }
+
+    map < string, string > h;
+    db->selectrow_hash(h, "SELECT * FROM WikiEntry LIMIT 1");
+    cout << "Output from select one wiki entry" << endl;
+    for_each(h.begin(), h.end(),
+             [](const pair<string, string> &s) { cout << "  " << s.first << ": " << s.second << endl; });
+
+    vector <map < string, string > > ah;
+    db->selectrows_hash(ah, "SELECT * FROM WikiEntry");
+    if (h.size() == ah[0].size())
+    {
+        cout << "Got the right number of fields in the first element of selectrows" << endl;
+    }
+
+
+
     return 0;
 }

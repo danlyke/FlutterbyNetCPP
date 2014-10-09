@@ -201,7 +201,12 @@ std::string FbyORMHash::AssignFromMember(const std::string &memberName)
     return values[memberName];
 }
 
-void FbyORMArray::AssignToMember(const std::string & memberName,
+FbyORMArray::FbyORMArray()
+    : FbyORMAnonymous(BASEOBJINIT(FbyORMArray)), values()
+{
+}
+
+void FbyORMArray::AssignToMember(const std::string & /* memberName */,
                     const std::string & value)
 {
     values.push_back(value);
@@ -413,11 +418,18 @@ int FbyDB::selectrows_array(std::vector< std::vector< std::string > > &values,
     {
         values.push_back((*i)->values);
     }
+    return values.size();
 }
 
 int FbyDB::selectrows_hash(std::vector< std::map< std::string, std::string > > &values, const char *s)
 {
-   
+    vector<FbyORMHashPtr> hash;
+    Load(hash, s);
+    for (auto i = hash.begin(); i != hash.end(); ++i)
+    {
+        values.push_back((*i)->values);
+    }
+    return values.size();
 }
 
 bool FbyDB::selectrow_array(std::vector< std::string > &values, const char *s)
