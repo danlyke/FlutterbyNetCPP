@@ -5,6 +5,7 @@
 #include <time.h>
 #include <string>
 #include <functional>
+#include <map>
 
 extern time_t TextDateToTime(const std::string &textDate);
 extern std::string TimeToTextDate(time_t t);
@@ -50,39 +51,6 @@ public :
 };
 
 
-FBYCLASS(FbyORMAnonymous) : public FbyORM
-{
-public:
-    FbyORMAnonymous(const char *name, int size);
-    
-    virtual ~FbyORMAnonymous();
-    virtual const char **MemberNames() = 0;
-    virtual const char *ClassName() = 0;
-    virtual const char **KeyNames() = 0;
-};
-
-FBYCLASS(FbyORMHash) : public FbyORMAnonymous
-{
-public:
-    std::map< std::string, std::string > values;
-public:
-    FbyORMHash();
-    void AssignToMember(const std::string & memberName,
-                        const std::string & value);
-    std::string AssignFromMember(const std::string &memberName);
-};
-
-FBYCLASS(FbyORMArray) : pubilc FbyORM
-{
-public:
-    std::vector< std::string > values;
-public:
-    FbyORMHash();
-    void AssignToMember(const std::string & memberName,
-                        const std::string & value);
-    std::string AssignFromMember(const std::string &memberName);
-};
-
 FBYCLASS(FbyStatement) : public FbyHelpers::BaseObj
 {
 public:
@@ -114,11 +82,36 @@ FbyDB(const char *name, int size) : BaseObj(name,size) {};
 
     void Insert(const char *table, std::vector<std::string> &keys, std::vector<std::string> &values);
 
-    int selectrows_array(std::vector< std::vector< std::string > > > &values, const char *s);
-    int selectrows_hash(std::vector< std::map< std::string, std::string > > > &values, const char *s);
+    int selectrows_array(std::vector< std::vector< std::string > > &values, const char *s);
+    int selectrows_hash(std::vector< std::map< std::string, std::string > > &values, const char *s);
 
-    bool selectrow_array(std::vector< std::string > > &values, const char *s);
-    bool selectrow_hash(std::map< std::string, std::string > > &values, const char *s);
+    bool selectrow_array(std::vector< std::string > &values, const char *s);
+    bool selectrow_hash(std::map< std::string, std::string > &values, const char *s);
+
+
+    int selectrows_array(std::vector< std::vector< std::string > > &values, const std::string &s)
+    { return selectrows_array(values, s.c_str()); }
+    int selectrows_hash(std::vector< std::map< std::string, std::string > > &values, const std::string &s)
+    { return selectrows_hash(values, s.c_str()); }
+
+    bool selectrow_array(std::vector< std::string > &values, const std::string &s)
+    { return selectrow_array(values, s.c_str()); }
+    bool selectrow_hash(std::map< std::string, std::string > &values, const std::string &s)
+    { return selectrow_hash(values, s.c_str()); }
+
+    std::string selectvalue(const char *s)
+    {
+        std::vector<std::string> a;
+        selectrow_array(a, s);
+        if (!a.empty())
+            return a[0];
+        return std::string();
+    }
+    std::string selectvalue(const std::string &s)
+    {
+        return selectvalue(s.c_str());
+    }
+    
 
     template <class C1, class C2> void CastCopyArray(DYNARRAY(C1) inData, DYNARRAY(FBYPTR(C2)) &outData)
     {

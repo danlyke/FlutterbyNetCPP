@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <time.h>
+#include <sstream>
 
 #include <limits.h>
 #include <float.h>
@@ -118,13 +119,56 @@ FbyORM::~FbyORM()
 
 
 
+FBYCLASS(FbyORMAnonymous) : public FbyORM
+{
+public:
+    FbyORMAnonymous(const char *name, int size);
+    
+    virtual ~FbyORMAnonymous();
+    virtual const char **MemberNames();
+    virtual const char *ClassName();
+    virtual const char **KeyNames();
+};
+
+FBYCLASSPTR(FbyORMHash);
+FBYCLASS(FbyORMHash) : public FbyORMAnonymous
+{
+public:
+    std::map< std::string, std::string > values;
+public:
+    FbyORMHash();
+    void AssignToMember(const std::string & memberName,
+                        const std::string & value);
+    std::string AssignFromMember(const std::string &memberName);
+};
+
+FBYCLASSPTR(FbyORMArray);
+FBYCLASS(FbyORMArray) : public FbyORMAnonymous
+{
+public:
+    std::vector< std::string > values;
+public:
+    FbyORMArray();
+    void AssignToMember(const std::string & memberName,
+                        const std::string & value);
+    std::string AssignFromMember(const std::string &memberName);
+};
+
+
+
+
+
 FbyORMAnonymous::FbyORMAnonymous(const char *name, int size) : FbyORM(name, size)
+{
+}
+
+FbyORMAnonymous::~FbyORMAnonymous()
 {
 }
 
 const char **FbyORMAnonymous::MemberNames()
 {
-    static char **names = [NULL];
+    static const char **names = {NULL};
     return names;
 }
 const char *FbyORMAnonymous::ClassName()
@@ -133,9 +177,12 @@ const char *FbyORMAnonymous::ClassName()
 }
 const char **FbyORMAnonymous::KeyNames()
 {
-    static char **names = [NULL];
+    static const char **names = {NULL};
     return names;
 }
+
+
+
 
 FbyORMHash::FbyORMHash() :
     FbyORMAnonymous(BASEOBJINIT(FbyORMHash)),
@@ -324,7 +371,7 @@ void FbyDB::Insert(const char *table, std::vector<std::string> &keys, std::vecto
     }
     else
     {
-        ss << "INSERT INTO ";t
+        ss << "INSERT INTO ";
         ss << table;
         ss << "(";
 
@@ -346,6 +393,7 @@ void FbyDB::Insert(const char *table, std::vector<std::string> &keys, std::vecto
         }
         ss << ")";
         Do(ss.str());
+    }
 }
 
 
@@ -353,7 +401,8 @@ void FbyDB::Begin() { Do("BEGIN;"); }
 void FbyDB::End() { Do("END;"); }
 
 
-int FbyDB::selectrows_array(virtual std::vector< std::vector< std::string > > > &values, const char *s)
+int FbyDB::selectrows_array(std::vector< std::vector< std::string > > &values,
+                            const char *s)
 {
     vector<FbyORMArrayPtr> array;
     Load(array, s);
@@ -366,12 +415,12 @@ int FbyDB::selectrows_array(virtual std::vector< std::vector< std::string > > > 
     }
 }
 
-int FbyDB::selectrows_hash(std::vector< std::map< std::string, std::string > > > &values, const char *s)
+int FbyDB::selectrows_hash(std::vector< std::map< std::string, std::string > > &values, const char *s)
 {
    
 }
 
-bool FbyDB::selectrow_array(std::vector< std::string > > &values, const char *s)
+bool FbyDB::selectrow_array(std::vector< std::string > &values, const char *s)
 {
     FbyORMArrayPtr arr;
     bool loaded(LoadOne(arr, s));
@@ -379,15 +428,15 @@ bool FbyDB::selectrow_array(std::vector< std::string > > &values, const char *s)
     if (loaded)
     {
         values.reserve(arr->values.size());
-        for (auto i = arr->values.begin(); i = arr->values.end(); ++i)
+        for (auto i = arr->values.begin(); i != arr->values.end(); ++i)
         {
-            values.push_back(i);
+            values.push_back(*i);
         }
     }
-    return arr->values;
+    return loaded;
 }
 
-bool FbyDB::selectrow_hash(std::map< std::string, std::string > > &values, const char *s)
+bool FbyDB::selectrow_hash(std::map< std::string, std::string > &values, const char *s)
 {
     FbyORMHashPtr hash;
     bool loaded(LoadOne(hash, s));
@@ -395,7 +444,7 @@ bool FbyDB::selectrow_hash(std::map< std::string, std::string > > &values, const
     {
         for (auto i = hash->values.begin(); i != hash->values.end(); ++i)
         {
-            values[(*i)->first] = (*i)->second;
+            values[i->first] = i->second;
         }
     }
     return loaded;
