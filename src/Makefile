@@ -38,7 +38,7 @@ TEST_DIRECTORIES=../temp/html_staging/ ../temp/public_html/ ../temp/wiki
 all: $(EXECUTABLE) $(EXECUTABLE2) $(OUTPUTDIRECTORIES) ../var/fby.sqlite3
 	mkdir -p $(OUTPUTDIRECTORIES)
 	mkdir -p $(TEST_DIRECTORIES)
-	cp ../bin/getstatus.cgi  /usr/lib/cgi-bin/
+	cp ../bin/getstatus.cgi  ~/websites/flutterby.net/cgi-bin/
 #	../bin/fby_test -c ../t/config.ini --
 
 
