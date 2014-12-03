@@ -776,7 +776,7 @@ void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t l
         os << "$(document).ready(function() {\n";
         os << onload;
         os << "});\n";
-        os << "//]>\n";
+        os << "//]]>\n";
         os << "</script>\n";
     }
 
@@ -1046,8 +1046,11 @@ void Wiki::GetImageHTML(ostream &os,
                 (*imginst)->LoadDimensions();
                 wikidb->WriteImageInstance(*imginst);
             }
-            width = "style=\"width: "
-                + to_string((*imginst)->width) + "px;\"";
+            if ((*imginst)->width > 0)
+            {
+                width = "style=\"width: "
+                    + to_string((*imginst)->width) + "px;\"";
+            }
             if (imginstances.size() > 1)
             {
                 caption += " (" + to_string((*imginst)->width)
@@ -1149,6 +1152,7 @@ void HTMLOutputterString::AddHTMLNodeEnd(const string &name)
     if (name == "p") os << endl << endl;
     if (name == "li") os << endl;
     if (name == "ul") os << endl;
+    if (name == "ol") os << endl;
     if (name == "blockquote") os << endl;
 }
 void HTMLOutputterString::AddWikiLink(const string &wikiname,
@@ -1185,7 +1189,7 @@ void HTMLOutputterWikiString::AddDPLList(const string &category,
             AddString(NormalizeWikiNameToFilename((*wikientry)->wikiname));
             AddString("\">");
             AddString((*wikientry)->wikiname);
-            AddString("</a>\n");
+            AddString("</a></li>\n");
         }
         AddString("</ul>");
     }
