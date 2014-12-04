@@ -99,5 +99,8 @@ tile cache.
 To be done here is a little more on pulling some combination of status
 updates and image metadata into maps.
 
+### Ubuntu packages I know I depend on
 
-
+libboost-dev libsqlite3-dev libpq-devl libboost-filesystem-dev
+libboost-system-dev libgdbm-dev libpcre3-dev libboost-iostreams-dev
+libboost-program-options-dev libcgicc-dev libpstreams-dev
