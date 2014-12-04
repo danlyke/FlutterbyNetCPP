@@ -30,7 +30,7 @@ using namespace boost::iostreams ;
 namespace fs = boost::filesystem;
 
 string dotWiki(".wiki");
-bool debug_output(true);
+bool debug_output(false);
 
 #include "wikidb.h"
 
@@ -658,7 +658,9 @@ void Wiki::RebuildDirtyFiles(const char *outputdir)
         wikientry != wikientries.end();
         ++wikientry)
     {
-        cout << "Rebuilding " << (*wikientry)->wikiname << endl;
+        if (debug_output)
+            cout << "Rebuilding " << (*wikientry)->wikiname << endl;
+
         string s(LoadWikiText(*wikientry));
 
         if (!s.empty())
@@ -694,8 +696,9 @@ void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t l
         treeParser.Parse(treeBuilder, buffer,length);
     }
 
-    
-    cerr << "Parsing wiki buffer to output '" << wikiname << "' outputdir '" << outputdir << "'" << endl;
+
+    if (debug_output)
+        cerr << "Parsing wiki buffer to output '" << wikiname << "' outputdir '" << outputdir << "'" << endl;
 
 
     outputpath += "/" + NormalizeWikiNameToFilename(wikiname) + ".html";
@@ -1094,11 +1097,9 @@ void Wiki::GetImageHTML(ostream &os,
 
         if (hasImage)
         {
-            cerr << "Investigating lightbox for " << imagename << endl;
             ImageInstancePtr zoominst(wikidb->ImageInstanceLightboxZoom(img));
             if (ImageInstancePtr() != zoominst)
             {
-                cerr << "Found lightbox for " << imagename << endl;
                 os << "<a href=\"./";
                 os << WebPathFromFilename(zoominst->filename);
                 os << "\" rel=\"lightbox\" caption=\"";
