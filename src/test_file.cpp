@@ -86,7 +86,12 @@ int main(int /* argc */, char ** /* argv */)
     fs::path sourceDir("/home/danlyke/websites/flutterby.net/mvs/");
 
     result_set_t stagingFiles;
-    FileNameAndTime fnat(stagingFiles);
+    FileFind("/home/danlyke/websites/flutterby.net/code/html_staging/",
+             [](fs::directory_iterator dir_iter)
+             {
+                 cout << dir_iter->path().filename().stem().string() << endl;
+             });
+    return 0;
 
     FileFind("/home/danlyke/websites/flutterby.net/html_staging/",
              [&stagingFiles](fs::directory_iterator dir_iter)

@@ -55,6 +55,7 @@ public:
                         const string &pattern,
                         const string &count);
     void RebuildDirtyFiles(const char *outputdir);
+    void RebuildDirtyFiles();
     void RebuildDirtyFiles(const std::string &outputdir)
     { RebuildDirtyFiles(outputdir.c_str()); }
 

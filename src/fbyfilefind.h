@@ -1,6 +1,9 @@
 #include <boost/filesystem.hpp>
 #include <limits.h>
 #include <iostream>
+#include <map>
+#include <string>
+
 using namespace boost::filesystem;
 
 template <class ResultSet> void FileFind(const path &dir, ResultSet rs)
@@ -39,3 +42,6 @@ template <class ResultSet> void FileFind(const char *startPath, ResultSet rs)
     FileFind(dir, rs);
 }
 
+
+typedef std::map<std::string, std::time_t> string_and_time_map_t;
+void FindFileNames(string_and_time_map_t &stagingFiles, const char *dir, const char *extension = "");
