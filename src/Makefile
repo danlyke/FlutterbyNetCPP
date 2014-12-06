@@ -39,6 +39,7 @@ all: $(EXECUTABLE) $(EXECUTABLE2) $(OUTPUTDIRECTORIES) ../var/fby.sqlite3
 	mkdir -p $(OUTPUTDIRECTORIES)
 	mkdir -p $(TEST_DIRECTORIES)
 	cp ../bin/getstatus.cgi  ~/websites/flutterby.net/cgi-bin/
+	cp ../bin/setstatus.cgi  ~/websites/flutterby.net/cgi-bin/
 #	../bin/fby_test -c ../t/config.ini --
 
 
