@@ -59,7 +59,7 @@ int main(int argc, char**argv, char **env)
 
     vector<StatusUpdateWithNamePtr> statuses;
 
-    string sql("SELECT statusupdate.*, person.name AS name FROM statusupdate, person WHERE statusupdate.person_id=person.id");
+    string sql("SELECT statusupdate.*, person.name AS name, person.shortname AS shortname FROM statusupdate, person WHERE statusupdate.person_id=person.id");
 
     string param_id = cgi("id");
     if (!param_id.empty())
@@ -106,7 +106,7 @@ int main(int argc, char**argv, char **env)
     for (auto status = statuses.begin(); status != statuses.end(); ++status)
     {
         cout << "<article class=\"h-entry\"><p><a class=\"p-author h-card\" \n";
-        cout << "href=\"http://www.flutterby.com/User:";
+        cout << "href=\"http://www.flutterby.net/User:";
         cout << (*status)->shortname;
         cout << "\">";
         cout << (*status)->name;
