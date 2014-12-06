@@ -393,7 +393,7 @@ void FbyDB::Insert(const char *table, std::vector<std::string> &keys, std::vecto
              s != values.end();
              ++s)
         {
-            if (s != keys.begin()) ss << ",";
+            if (s != values.begin()) ss << ",";
             ss << Quote(*s);
         }
         ss << ")";
