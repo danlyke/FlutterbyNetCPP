@@ -30,7 +30,7 @@ using namespace boost::iostreams ;
 namespace fs = boost::filesystem;
 
 string dotWiki(".wiki");
-bool debug_output(1);
+bool debug_output(0);
 
 #include "wikidb.h"
 
