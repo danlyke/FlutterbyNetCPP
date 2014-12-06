@@ -59,12 +59,15 @@ const char *html_header =
 int main(int argc, char**argv, char **env)
 {
 
-     FbyDBPtr db(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke'"));
+     FbyDBPtr db(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke' host='localhost' "));
     cgicc::Cgicc cgi;
 
+    cout << cgicc::HTTPHTMLHeader() << endl;
+    cout << html_header;
+
     string param_status = cgi("status");
-    string person_id(db->selectvalue("SELECT id FROM user WHERE password="
-                                   + db->Quote(cgi("pw"))));
+    string person_id(db->selectvalue("SELECT id FROM person WHERE password=digest("
+                                     + db->Quote(cgi("pw")) + ",'sha512')"));
 
     if ((!param_status.empty()) && !person_id.empty())
     {
@@ -74,24 +77,26 @@ int main(int argc, char**argv, char **env)
         string imagename(cgi("photoname"));
         auto ufh(cgi.getFile("photofile"));
 
-        if ((!cgi("photofile").empty())
-                && !imagename.empty())
+
+        if (!ufh->getFilename().empty())
             
         {
+            cout << "<p><b>Filename: " << ufh->getFilename() << "</b></p>\n";
+            cout << "<p><b>Imagename: " << imagename << "</b></p>\n";
             string cwd(get_current_dir_name());
-            imagename = cgi("photoname");
             for (size_t i = 0; i < imagename.length(); ++i)
             {
                 if (!(isalnum(imagename[i])
                       || imagename[i] == '-'
-                      || imagename[i] == '_'))
+                      || imagename[i] == '_'
+                      || imagename[i] == '.'))
                 {
                     imagename.erase(i, i+1);
                 }
             }
 
-            string writecmd("/home/danlyke/bin/fby writeimagefile \"" + imagename + "\"");
-            cout <<  "Getting uploaded photo: $writecmd<br>\n";
+            string writecmd("/home/danlyke/bin/fby --writeimagefile \"" + imagename + "\"");
+            cout <<  "Getting uploaded photo: " << writecmd << "<br>\n";
 
             redi::opstream outfh(writecmd.c_str());
             if (outfh)
@@ -121,6 +126,7 @@ int main(int argc, char**argv, char **env)
 
         const char xid_chars[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
         char xid[13] = "";
+        srand(time(NULL));
         for (size_t i = 0; i < sizeof(xid) - 1; ++i)
         {
             xid[i] = xid_chars[rand() % sizeof(xid_chars)];
@@ -152,13 +158,13 @@ int main(int argc, char**argv, char **env)
         }
 
         keys.push_back("flutterby_update");
-        values.push_back(param_flutterby_update);
+        values.push_back(param_flutterby_update.empty() ? "0" : "1");
         keys.push_back("twitter_update");
-        values.push_back(param_twitter_update);
+        values.push_back(param_twitter_update.empty() ? "0" : "1");
         keys.push_back("facebook_update");
-        values.push_back(param_facebook_update);
+        values.push_back(param_facebook_update.empty() ? "0" : "1");
         keys.push_back("identica_update");
-        values.push_back(param_identica_update);
+        values.push_back(param_identica_update.empty() ? "0" : "1");
 
         keys.push_back("person_id");
         values.push_back(person_id);
@@ -199,13 +205,17 @@ int main(int argc, char**argv, char **env)
         time_t now(time(NULL));
         char buffer[32];
 
-        strftime(buffer,sizeof(buffer),"F%-%T", localtime(&now));
-        imagename = string(buffer);
+        strftime(buffer,sizeof(buffer),"%F-%T", localtime(&now));
+        for (int i = 0; buffer[i] && i < sizeof(buffer); ++i)
+        {
+            if (buffer[i] == ':') buffer[i] = '-';
+        }
+        imagename = string(buffer) + ".jpg";
     }
 
     cout <<
         "<div id=\"charcount\">0</div>\n"
-        "<form method=\"post\" action=\"/cgi-bin/setstatus.pl\" enctype=\"multipart/form-data\">";
+        "<form method=\"post\" action=\"/cgi-bin/setstatus.cgi\" enctype=\"multipart/form-data\">";
 
     cout << "<form method=\"POST\" enctype=\"multipart/form-data\">";
     cout <<  "Password: ";
@@ -225,7 +235,7 @@ int main(int argc, char**argv, char **env)
         "+-: <input id=\"posaccuracy\" name=\"posaccuracy\" size=\"4\" />"
         "<input type=\"button\" name=\"Here\" value=\"here\" onClick=\"navigator.geolocation.getCurrentPosition(handler);\" />"
         "<br>Photo: <input name=\"photofile\" type=\"file\" />"
-        "<br>Photo Name: <input name=\"photoname\" size=\"32\" value=\"$imagename\" />";
+        "<br>Photo Name: <input name=\"photoname\" size=\"32\" value=\"" << imagename << "\" />";
     cout << "<br><input type=\"submit\" name=\"Save\" value=\"save\" /></form><hr />";
 
     cout <<
