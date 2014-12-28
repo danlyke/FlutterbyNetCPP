@@ -69,9 +69,11 @@ protected:
 
 
 
+Regex regexDoctypeFinder("DOCTYPE Finder",
+                             "^(.*?)(\\<\\!DOCTYPE\\s+(.*?)\\s*>)");
 Regex regexCommentFinder("Comment Finder",
-                             "^(.*?)(\\<\\!\\-\\-\\s+(.*?)\\s+\\-\\-\\>)");
-Regex regexLinkFinder("Link Finder",
+                             "^(.*?)(\\<\\!\\-\\-\\s*(.*?)\\s*\\-\\-\\>)");
+Regex regexElementFinder("Link Finder",
                              "^(.*?)\\<(\\/?)([a-z]\\w*)(.*?)(\\/?)(\\>)");
 Regex regexAttrMatch1("Attribute Match 1",
                              "^\\s*([a-z]+\\w*)\\s*\\=\\s*\\\"([^\\\"]*)(\\\"\\s*)");
@@ -291,7 +293,7 @@ void FormatParagraph(TreeBuilder &treeBuilder,const char *buffer, size_t count)
 {
     RegexMatch match;
 
-    while (regexLinkFinder.Match(buffer, count, match))
+    while (regexElementFinder.Match(buffer, count, match))
     {
         PrintMatches("link finder ", buffer, match);
         FormatChunk(treeBuilder, buffer, match.End(1));
@@ -346,6 +348,96 @@ void FormatParagraph(TreeBuilder &treeBuilder,const char *buffer, size_t count)
     }
     FormatChunk(treeBuilder, buffer, count);
 
+}
+
+
+// This is a lot like FormatParagraph above and should probably be
+// combined, with a lambda or something.
+
+
+void FormatHTMLChunk(TreeBuilder &treeBuilder,const char *buffer, size_t count)
+{
+    RegexMatch match;
+
+ 
+    while (regexElementFinder.Match(buffer, count, match))
+    {
+        PrintMatches("link finder ", buffer, match);
+        FormatString(treeBuilder, buffer, match.End(1));
+        bool close = (match.Start(2) != match.End(2));
+        bool hasAttrs = (match.Start(4) != match.End(4));
+        string tagname(buffer + match.Start(3), match.Length(3));
+        size_t pos;
+        for (pos = 0; pos < tagname.length() && !isspace(tagname[pos]); ++pos)
+        {}
+        if (pos < tagname.length())
+        {
+            tagname.erase(pos, string::npos);
+        }
+
+        if (close)
+        {
+            treeBuilder.Pop(tagname);
+        }
+        else
+        {
+            ParseTreeNodePtr node(treeBuilder.NodeFactory(tagname));
+            treeBuilder.Push(node);
+            if (hasAttrs)
+            {
+                RegexMatch attrMatch;
+                const char *attrs = buffer + match.Start(4);
+                int attrLength = match.Length(4);
+//                printf("Attrs: %.*s\n", attrLength, attrs);
+
+                while (regexAttrMatch1.Match(attrs, attrLength, attrMatch)
+                       || regexAttrMatch2.Match(attrs, attrLength, attrMatch)
+                       || regexAttrMatch3.Match(attrs, attrLength, attrMatch))
+                {
+                    PrintMatches("Attributes",attrs,attrMatch);
+                    string attr(attrs + attrMatch.Start(1), attrMatch.Length(1));
+                    treeBuilder.CurrentNode()->AddAttribute(attr.c_str());
+//                    string val(attrs + attrMatch.Start(2), attrMatch.Length(2));
+//                    treeBuilder.CurrentNode()->AddAttributeValue(val.c_str());
+                    FormatAttribute(treeBuilder.CurrentNode(),
+                                    attrs + attrMatch.Start(2), attrMatch.Length(2));
+                    attrs += attrMatch.End(3);
+                    attrLength -= attrMatch.End(3);
+                }
+                if (match.Start(5) != match.End(5))
+                {
+                    treeBuilder.Pop();
+                }
+            }
+        }
+        buffer += match.End(6);
+        count -= match.End(6);
+    }
+    FormatString(treeBuilder, buffer, count);
+
+}
+
+void FormatHTMLComments(TreeBuilder &treeBuilder, const char *buffer, size_t length)
+{
+    RegexMatch match; 
+    while (regexCommentFinder.Match(buffer, length, match))
+    {
+        FormatHTMLChunk(treeBuilder, buffer, match.End(1));
+        treeBuilder.AddComment(buffer + match.Start(2), match.Length(2));
+        buffer += match.End(2);
+        length -= match.End(2);
+    }
+}
+void FormatHTML(TreeBuilder &treeBuilder, const char *buffer, size_t length)
+{
+    RegexMatch match; 
+    while (regexDoctypeFinder.Match(buffer, length, match))
+    {
+        FormatHTMLComments(treeBuilder, buffer, match.End(1));
+        treeBuilder.AddComment(buffer + match.Start(2), match.Length(2));
+        buffer += match.End(2);
+        length -= match.End(2);
+    }
 }
 
 
