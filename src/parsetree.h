@@ -75,7 +75,16 @@ public:
     {
     }
 
+    virtual void ForEachChild(std::function<bool (ParseTreeNode *)> /* f */ )
+    {
+    }
+
     virtual void ForEach(std::function<void (ParseTreeNode *)> f)
+    {
+        f(this); 
+    }
+
+    virtual void ForEach(std::function<bool (ParseTreeNode *)> f)
     {
         f(this); 
     }
@@ -130,6 +139,9 @@ ElementNode(const string &name_) :
 
     virtual void ForEachChild(std::function<void (ParseTreeNode *)> f) override;
     virtual void ForEach(std::function<void (ParseTreeNode *)> f) override;
+
+    virtual void ForEachChild(std::function<bool (ParseTreeNode *)> f) override;
+    virtual void ForEach(std::function<bool (ParseTreeNode *)> f) override;
 
     void AddText(const string &text);
     virtual void AddChild(ParseTreeNodePtr child);

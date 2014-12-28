@@ -89,6 +89,23 @@ void ElementNode::AsHTML(HTMLOutputter &outputter)
         outputter.AddHTMLNodeEnd(name);
 }
 
+void ElementNode::ForEachChild(std::function<bool (ParseTreeNode *)> f)
+{
+    for (auto node = children.begin(); node != children.end(); ++node)
+    {
+        (*node)->ForEach(f);
+    }
+}
+
+
+void ElementNode::ForEach(std::function<bool (ParseTreeNode *)> f)
+{
+    if (f(this))
+    {
+        ForEachChild(f);
+    }
+}
+
 void ElementNode::ForEachChild(std::function<void (ParseTreeNode *)> f)
 {
     for (auto node = children.begin(); node != children.end(); ++node)
@@ -96,6 +113,7 @@ void ElementNode::ForEachChild(std::function<void (ParseTreeNode *)> f)
         (*node)->ForEach(f);
     }
 }
+
 
 void ElementNode::ForEach(std::function<void (ParseTreeNode *)> f)
 {
