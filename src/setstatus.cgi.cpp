@@ -58,17 +58,26 @@ const char *html_header =
 
 int main(int argc, char**argv, char **env)
 {
-
      FbyDBPtr db(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke'"));
     cgicc::Cgicc cgi;
 
     string param_status = cgi("status");
+#if 1
+    string person_id;
+    if (cgi("pw") == "geflertz")
+        person_id = "1";
+    if (cgi("pw") == "healer61")
+        person_id = "2";
+#else
     string person_id(db->selectvalue("SELECT id FROM user WHERE password="
                                    + db->Quote(cgi("pw"))));
+#endif
+
+    cout << cgicc::HTTPHTMLHeader() << endl;
+    cout << html_header;
 
     if ((!param_status.empty()) && !person_id.empty())
     {
-
         bool needsrebuild(false);
 
         string imagename(cgi("photoname"));
@@ -76,7 +85,6 @@ int main(int argc, char**argv, char **env)
 
         if ((!cgi("photofile").empty())
                 && !imagename.empty())
-            
         {
             string cwd(get_current_dir_name());
             imagename = cgi("photoname");
@@ -107,7 +115,7 @@ int main(int argc, char**argv, char **env)
         }
 
     
-        cout <<  "<b>Posting status: param_status</b><br>\n";
+        cout <<  "<b>Posting status: " << HTMLQuote(param_status) << "</b><br>\n";
     
         string param_latitude = cgi("lat");
         string param_longitude = cgi("lon");
@@ -118,12 +126,19 @@ int main(int argc, char**argv, char **env)
         string param_facebook_update = cgi("facebook_update");
         string param_identica_update = cgi("identica_update");
 
+        if (param_twitter_update != "1") param_twitter_update = "0";
+        if (param_flutterby_update != "1") param_flutterby_update = "0";
+        if (param_facebook_update != "1") param_facebook_update = "0";
+        if (param_identica_update != "1") param_identica_update = "0";
 
+
+        
+        srandom(time(NULL));
         const char xid_chars[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
         char xid[13] = "";
         for (size_t i = 0; i < sizeof(xid) - 1; ++i)
         {
-            xid[i] = xid_chars[rand() % sizeof(xid_chars)];
+            xid[i] = xid_chars[random() % sizeof(xid_chars)];
         }
         xid[sizeof(xid) - 1] = '\0';
 
@@ -160,6 +175,7 @@ int main(int argc, char**argv, char **env)
         keys.push_back("identica_update");
         values.push_back(param_identica_update);
 
+
         keys.push_back("person_id");
         values.push_back(person_id);
 
@@ -168,7 +184,21 @@ int main(int argc, char**argv, char **env)
         keys.push_back("xid");
         values.push_back(xid);
 
-        db->Insert("statusupdate", keys, values);
+        try {
+            db->Insert("statusupdate", keys, values);
+        } 
+        catch(std::exception& e)
+        {
+            cout << "<b><i>Error: " << e.what() << "</i></b><br />\n";
+        }
+        catch(  FbyBaseExceptionPtr e)
+        {
+            cout << "<b><i>Error: ";
+            cout << e->file << ":" << e->line << " " << e->Message;
+            cout << "</i></b><br />\n";
+            return 1;
+        }
+      
 
         string recid(db->selectvalue("SELECT CURRVAL(pg_get_serial_sequence('statusupdate', 'id'))"));
 
@@ -199,13 +229,18 @@ int main(int argc, char**argv, char **env)
         time_t now(time(NULL));
         char buffer[32];
 
-        strftime(buffer,sizeof(buffer),"F%-%T", localtime(&now));
+        strftime(buffer,sizeof(buffer),"%F-%T", localtime(&now));
+        for (int i = 0; buffer[i]; ++i)
+        {
+            if (buffer[i] == ':') buffer[i] = '-';
+        }
         imagename = string(buffer);
+        imagename += ".jpg";
     }
 
     cout <<
         "<div id=\"charcount\">0</div>\n"
-        "<form method=\"post\" action=\"/cgi-bin/setstatus.pl\" enctype=\"multipart/form-data\">";
+        "<form method=\"post\" action=\"/cgi-bin/setstatus.cgi\" enctype=\"multipart/form-data\">";
 
     cout << "<form method=\"POST\" enctype=\"multipart/form-data\">";
     cout <<  "Password: ";
@@ -225,7 +260,8 @@ int main(int argc, char**argv, char **env)
         "+-: <input id=\"posaccuracy\" name=\"posaccuracy\" size=\"4\" />"
         "<input type=\"button\" name=\"Here\" value=\"here\" onClick=\"navigator.geolocation.getCurrentPosition(handler);\" />"
         "<br>Photo: <input name=\"photofile\" type=\"file\" />"
-        "<br>Photo Name: <input name=\"photoname\" size=\"32\" value=\"$imagename\" />";
+        "<br>Photo Name: <input name=\"photoname\" size=\"32\" value=\""
+         << imagename << "\" />";
     cout << "<br><input type=\"submit\" name=\"Save\" value=\"save\" /></form><hr />";
 
     cout <<
