@@ -27,6 +27,7 @@ public:
     void Pop();
     void Pop(const string &name);
     void Graft(ParseTreeNodePtr node, int where);
+    ParseTreeNodePtr RootNode();
 
     virtual void AddComment(const char * /* buffer */, size_t /* len */);
     virtual ParseTreeNode *NodeFactory(const std::string & /* nodename */);

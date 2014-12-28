@@ -117,6 +117,12 @@ void TreeBuilder::Pop(const string &name)
 }
 
 
+ParseTreeNodePtr TreeBuilder::RootNode()
+{
+    return rootNode;
+}
+
+
 
 void TreeBuilder::AddComment(const char * /* buffer */, size_t /* len */)
 {}
