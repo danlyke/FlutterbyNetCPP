@@ -9,6 +9,8 @@ vpath %.cpp .
 
 CC=g++
 CFLAGS= -std=c++11 -Wall -Wextra -Weffc++ -g -fPIC -I /usr/include/postgresql
+# -I /home/danlyke/code/gtest-1.7.0/include/
+# -L /home/danlyke/code/gtest-1.7.0/ -lgtest
 LDFLAGS= -L. -lfby -lsqlite3 -lpq -lboost_filesystem -lboost_system -lgdbm -lpcre -lboost_iostreams  -l boost_program_options -lcgicc
 LIBSOURCES=fbystd.cpp parsertokens.cpp textparse.yy.cpp stringutil.cpp parsetree.cpp fbyregex.cpp fby_core_unix_array.cpp fby_core_unix_helpers.cpp fby_core_unix.cpp fbydb.cpp fbydb_sqlite3.cpp fbydb_postgresql.cpp regexparser.cpp treebuilder.cpp wikistrings.cpp netserver.cpp fbyfileutils.cpp fbyimageutils.cpp
 
@@ -18,7 +20,7 @@ EXESOURCES=test_file.cpp test_lambda.cpp test_flex.cpp test_tester.cpp test_rese
 # copychangedfiles.cpp
 # test_subst.cpp
 
-EXE2SOURCES= fby.cpp fby_test.cpp test_fbydb.cpp scaninputwikifiles.cpp scanimages.cpp parsewikifiletostaging.cpp test_regexparse.cpp parsewikifilesforlinks.cpp scanwikifilesforlinks.cpp rebuilddirtyfiles.cpp getstatus.cgi.cpp setstatus.cgi.cpp test_fbyregex.cpp
+EXE2SOURCES= fby.cpp fby_test.cpp test_fbydb.cpp scaninputwikifiles.cpp scanimages.cpp parsewikifiletostaging.cpp test_regexparse.cpp parsewikifilesforlinks.cpp scanwikifilesforlinks.cpp rebuilddirtyfiles.cpp getstatus.cgi.cpp setstatus.cgi.cpp test_fbyregex.cpp test_microformats.cpp test_parsehtml.cpp
 
 
 OUTPUTDIRECTORIES= ../obj ../bin
@@ -39,6 +41,7 @@ all: $(EXECUTABLE) $(EXECUTABLE2) $(OUTPUTDIRECTORIES) ../var/fby.sqlite3
 	mkdir -p $(OUTPUTDIRECTORIES)
 	mkdir -p $(TEST_DIRECTORIES)
 	cp ../bin/getstatus.cgi  /usr/lib/cgi-bin/
+	cp ../bin/setstatus.cgi  /usr/lib/cgi-bin/
 #	../bin/fby_test -c ../t/config.ini --
 
 
