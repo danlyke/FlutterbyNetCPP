@@ -58,8 +58,11 @@ const char *html_header =
 
 int main(int argc, char**argv, char **env)
 {
-     FbyDBPtr db(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke'"));
+     FbyDBPtr db(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke' host='localhost' "));
     cgicc::Cgicc cgi;
+
+    cout << cgicc::HTTPHTMLHeader() << endl;
+    cout << html_header;
 
     string param_status = cgi("status");
 #if 1
@@ -69,12 +72,14 @@ int main(int argc, char**argv, char **env)
     if (cgi("pw") == "healer61")
         person_id = "2";
 #else
-    string person_id(db->selectvalue("SELECT id FROM user WHERE password="
-                                   + db->Quote(cgi("pw"))));
+    string person_id(db->selectvalue("SELECT id FROM person WHERE password=digest("
+                                     + db->Quote(cgi("pw")) + ",'sha512')"));
 #endif
 
     cout << cgicc::HTTPHTMLHeader() << endl;
     cout << html_header;
+
+
 
     if ((!param_status.empty()) && !person_id.empty())
     {
@@ -86,20 +91,22 @@ int main(int argc, char**argv, char **env)
         if ((!cgi("photofile").empty())
                 && !imagename.empty())
         {
+            cout << "<p><b>Filename: " << ufh->getFilename() << "</b></p>\n";
+            cout << "<p><b>Imagename: " << imagename << "</b></p>\n";
             string cwd(get_current_dir_name());
-            imagename = cgi("photoname");
             for (size_t i = 0; i < imagename.length(); ++i)
             {
                 if (!(isalnum(imagename[i])
                       || imagename[i] == '-'
-                      || imagename[i] == '_'))
+                      || imagename[i] == '_'
+                      || imagename[i] == '.'))
                 {
                     imagename.erase(i, i+1);
                 }
             }
 
-            string writecmd("/home/danlyke/bin/fby writeimagefile \"" + imagename + "\"");
-            cout <<  "Getting uploaded photo: $writecmd<br>\n";
+            string writecmd("/home/danlyke/bin/fby --writeimagefile \"" + imagename + "\"");
+            cout <<  "Getting uploaded photo: " << writecmd << "<br>\n";
 
             redi::opstream outfh(writecmd.c_str());
             if (outfh)
@@ -136,6 +143,7 @@ int main(int argc, char**argv, char **env)
         srandom(time(NULL));
         const char xid_chars[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
         char xid[13] = "";
+        srand(time(NULL));
         for (size_t i = 0; i < sizeof(xid) - 1; ++i)
         {
             xid[i] = xid_chars[random() % sizeof(xid_chars)];
@@ -167,13 +175,13 @@ int main(int argc, char**argv, char **env)
         }
 
         keys.push_back("flutterby_update");
-        values.push_back(param_flutterby_update);
+        values.push_back(param_flutterby_update.empty() ? "0" : "1");
         keys.push_back("twitter_update");
-        values.push_back(param_twitter_update);
+        values.push_back(param_twitter_update.empty() ? "0" : "1");
         keys.push_back("facebook_update");
-        values.push_back(param_facebook_update);
+        values.push_back(param_facebook_update.empty() ? "0" : "1");
         keys.push_back("identica_update");
-        values.push_back(param_identica_update);
+        values.push_back(param_identica_update.empty() ? "0" : "1");
 
 
         keys.push_back("person_id");

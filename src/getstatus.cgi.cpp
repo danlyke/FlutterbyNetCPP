@@ -27,18 +27,18 @@ const char *html_header =
     "\n"
     "<link rel=\"icon\" href=\"/favicon.ico\" type=\"image/ico\"></link>\n"
     "<script type=\"text/javascript\" src=\"http://maps.google.com/maps/api/js?sensor=false&amp;v=3.6&key=AIzaSyB7waN-qxOPaSUNi58cBpy0Uhknzx0JMPs\"></script>\n"
-    "<script type=\"text/javascript\" src=\"js/fby/maputils.js\"></script>\n"
+    "<script type=\"text/javascript\" src=\"/js/fby/maputils.js\"></script>\n"
     "<script type=\"text/javascript\">//<![CDATA[\n"
     "var mapIcons = {};function addLoadEvent(func) {var oldonload = window.onload;if (typeof oldonload == 'function') {window.onload= function() {oldonload();func();};} else {window.onload = func;}}\n"
     "//]]>\n"
     "</script>\n"
-    "<link rel=\"stylesheet\" href=\"js/ol/default/style.css\" type=\"text/css\">\n"
+    "<link rel=\"stylesheet\" href=\"/js/ol/default/style.css\" type=\"text/css\">\n"
     "</link>\n"
-    "<link  rel=\"stylesheet\" href=\"js/ol/default/google.css\" type=\"text/css\">\n"
+    "<link  rel=\"stylesheet\" href=\"/js/ol/default/google.css\" type=\"text/css\">\n"
     "</link>\n"
-    "<script type=\"text/javascript\" src=\"js/OpenLayers-2.11/OpenLayers.js\">\n"
+    "<script type=\"text/javascript\" src=\"/js/OpenLayers-2.11/OpenLayers.js\">\n"
     "</script>\n"
-    "<script type=\"text/javascript\" src=\"js/OSM_LocalTileProxy.js\">\n"
+    "<script type=\"text/javascript\" src=\"/js/OSM_LocalTileProxy.js\">\n"
     "</script>\n"
     "</head>\n"
     "\n"
@@ -53,13 +53,13 @@ const char *html_header =
 
 int main(int argc, char**argv, char **env)
 {
-    FbyDBPtr db(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke'"));
+    FbyDBPtr db(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke' host='localhost'"));
     int limit = 50;
     cgicc::Cgicc cgi;
 
     vector<StatusUpdateWithNamePtr> statuses;
 
-    string sql("SELECT statusupdate.*, person.name AS name FROM statusupdate, person WHERE statusupdate.person_id=person.id");
+    string sql("SELECT statusupdate.*, person.name AS name, person.shortname AS shortname FROM statusupdate, person WHERE statusupdate.person_id=person.id");
 
     string param_id = cgi("id");
     if (!param_id.empty())
@@ -106,7 +106,7 @@ int main(int argc, char**argv, char **env)
     for (auto status = statuses.begin(); status != statuses.end(); ++status)
     {
         cout << "<article class=\"h-entry\"><p><a class=\"p-author h-card\" \n";
-        cout << "href=\"http://www.flutterby.com/User:";
+        cout << "href=\"http://www.flutterby.net/User:";
         cout << (*status)->shortname;
         cout << "\">";
         cout << (*status)->name;
@@ -153,9 +153,9 @@ int main(int argc, char**argv, char **env)
                     if (pos != string::npos)
                         filename.erase(0,pos);
                 }
-                cout << "<a href=\"http://www.flutterby.net/Image:";
+                cout << "<a href=\"/Image:";
                 cout << (*status)->imagename;
-                cout << "\"><img src=\"http://www.flutterby.net/";
+                cout << "\"><img src=\"";
                 cout << filename;
                 cout <<"\" width=\"";
                 cout << imageInstance->width;

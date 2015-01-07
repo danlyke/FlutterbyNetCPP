@@ -1,0 +1,5 @@
+src/parsertokens.cpp
+src/parsertokens.h
+src/sqldefinitions.cpp
+src/sqldefinitions.sql
+src/textparse.yy.cpp

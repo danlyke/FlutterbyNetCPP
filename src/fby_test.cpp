@@ -43,6 +43,10 @@ int main(int ac, char* av[])
             ("scanwikifiles", "scan wiki files and mark changed files changed")
             ("scanimages", "scan image files and mark changed files changed")
             ("scandplfiles", "scan wiki files and mark files with dpl tags changed")
+            ("rebuilddirtyfiles", "rebuild all files marked dirty")
+
+
+
             ("getwikifiles", "get a list of all of the wiki files")
             ("getcontentdirty", "get a list of all of the content dirty wiki files")
             ("getreferenceddirty", "get a list of all of the reference dirty wiki files")
@@ -58,7 +62,7 @@ int main(int ac, char* av[])
              "load a single image instance data, by filemame")
             ("scanwikifile", po::value<string>(&target_file),
              "scan specified file for links to other files, mark changed files externally changed")
-            ("rebuildwikifile", po::value<string>(&target_file),
+            ("dowikifile", po::value<string>(&target_file),
              "rebuild the specified wiki file")
             ("markcontentdirty", po::value<string>(&target_file),
              "mark the specified wiki page dirty")
@@ -147,6 +151,9 @@ int main(int ac, char* av[])
         if (vm.count("scandplfiles")) {
             wiki->ScanDPLFiles_NOCHANGES();
         }
+        if (vm.count("rebuilddirtyfiles")) {
+            wiki->RebuildDirtyFiles();
+        }
         if (vm.count("getwikifiles")) {
             wiki->GetWikiFiles();
         }
@@ -179,6 +186,10 @@ int main(int ac, char* av[])
         }
         if (vm.count("markreferencesdirty")) {
             wiki->MarkReferencesDirty(target_file.c_str());
+        }
+
+        if (vm.count("dowikifile")) {
+            wiki->DoWikiFile(target_file.c_str());
         }
     }
     catch(std::exception& e)

@@ -30,7 +30,7 @@ using namespace boost::iostreams ;
 namespace fs = boost::filesystem;
 
 string dotWiki(".wiki");
-bool debug_output(true);
+bool debug_output(0);
 
 #include "wikidb.h"
 
@@ -121,10 +121,17 @@ string Wiki::LoadFileToString(const char *filename)
     if (debug_output)
         cout << "Loading file '" << filename << "' to string" << endl;
     FILE *f = fopen(filename, "r");
-    if (NULL == f && (fn.substr(0,input_area.length()) == input_area))
+    if (NULL == f && (fn.substr(0,input_area.length()) != input_area))
     {
         string fully_qualified_name = input_area + "/" + fn;
         f = fopen(fully_qualified_name.c_str(), "r");
+        if (NULL == f)
+        {
+            string errmsg("Unable to open: ");
+            errmsg += fully_qualified_name;
+            cerr << errmsg << endl;
+            THROWEXCEPTION(errmsg);
+        }
     }
 
     if (NULL == f)
@@ -377,34 +384,24 @@ void Wiki::LoadPNGData(const std::string &imagepath)
 
 using namespace std;
 namespace fs = boost::filesystem;
-typedef map<string, std::time_t> result_set_t;
 fs::directory_iterator end_iter;
 
 //                 # .stem!
 
 
-class FileNameAndTime
-{
-public:
-    result_set_t &rs;
-    FileNameAndTime(result_set_t &_rs) : rs(_rs) {};
-    void operator ()(fs::directory_iterator /* dir_iter */)
-    {
-    }
-};
 
 
 class CompareWithStaging
 {
 public:
-    result_set_t &rs;
-    CompareWithStaging(result_set_t &_rs) : rs(_rs) {};
+    string_and_time_map_t &rs;
+    CompareWithStaging(string_and_time_map_t &_rs) : rs(_rs) {};
     void operator ()(fs::directory_iterator dir_iter)
     {
         string wikiname(NormalizeWikiName(dir_iter->path().filename().stem().string()));
         string filename(NormalizeWikiNameToFilename(wikiname));
         string destname(filename + ".html");
-        result_set_t::iterator source = rs.find(destname);
+        string_and_time_map_t::iterator source = rs.find(destname);
                 
         if (rs.end() != source)
         {
@@ -421,27 +418,9 @@ public:
 
 void Wiki::ScanWikiFiles(const char *inputDir, const char *stagingDir)
 {
-    result_set_t stagingFiles;
-    FileNameAndTime fnat(stagingFiles);
+    string_and_time_map_t stagingFiles;
 
-    cout << "Staging dir: " << stagingDir << endl;
-    FileFind(stagingDir,
-             [&stagingFiles](fs::directory_iterator dir_iter)
-             {
-                 cout << "In staging directory found file " << dir_iter->path().filename().string() << " with extension " << dir_iter->path().filename().extension().string() << endl;
-                 if (dir_iter->path().filename().extension() == ".html")
-                 {
-                     string path(dir_iter->path().filename().string());
-                     size_t pos = path.rfind("/");
-                     if (pos != string::npos)
-                     {
-                         path = path.erase(0, pos);
-                     }
-                     cout << "Adding " << path << " to stagingFiles" << endl;
-                     stagingFiles.insert(result_set_t::value_type(path, fs::last_write_time(*dir_iter)));
-                 }
-             }
-        );
+    FindFileNames(stagingFiles, stagingDir, ".html");
 
     FileFind(inputDir, [this, &stagingFiles](fs::directory_iterator dir_iter)
              {
@@ -455,8 +434,7 @@ void Wiki::ScanWikiFiles(const char *inputDir, const char *stagingDir)
                      string wikiname(NormalizeWikiName(basename));
                      string filename(NormalizeWikiNameToFilename(wikiname));
                      string destname(filename + ".html");
-                     cout << "Searching stagingFiles for " << destname << endl;
-                     result_set_t::const_iterator source = stagingFiles.find(destname);
+                     string_and_time_map_t::const_iterator source = stagingFiles.find(destname);
 
                      WikiEntryPtr entry;
                      if (!wikidb->LoadOrCreateWikiEntry(entry, wikiname))
@@ -482,8 +460,10 @@ void Wiki::ScanWikiFiles(const char *inputDir, const char *stagingDir)
                          if (dirty)
                          {
                              cout << "Marking " << wikiname
-                                  << " dirty, would write to " << destname << endl;
+                                  << " dirty, would write to " << destname;
                              cout << "   " << (stagingFiles.end() != source ? "time" : "missing dest") << endl;
+                             cout << endl;
+
                              entry->needsContentRebuild = true;
                              wikidb->WriteWikiEntry(entry);
                          }
@@ -507,8 +487,7 @@ void Wiki::ScanWikiFiles(const char *inputDir, const char *stagingDir)
 
 void Wiki::ScanWikiFilesForLinks(const char *inputDir, const char * /* stagingDir */)
 {
-    result_set_t stagingFiles;
-    FileNameAndTime fnat(stagingFiles);
+    string_and_time_map_t stagingFiles;
 
     FileFind(inputDir,
              [this](fs::directory_iterator dir_iter)
@@ -658,7 +637,9 @@ void Wiki::RebuildDirtyFiles(const char *outputdir)
         wikientry != wikientries.end();
         ++wikientry)
     {
-        cout << "Rebuilding " << (*wikientry)->wikiname << endl;
+        if (debug_output)
+            cout << "Rebuilding " << (*wikientry)->wikiname << endl;
+
         string s(LoadWikiText(*wikientry));
 
         if (!s.empty())
@@ -694,8 +675,9 @@ void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t l
         treeParser.Parse(treeBuilder, buffer,length);
     }
 
-    
-    cerr << "Parsing wiki buffer to output '" << wikiname << "' outputdir '" << outputdir << "'" << endl;
+
+    if (debug_output)
+        cerr << "Parsing wiki buffer to output '" << wikiname << "' outputdir '" << outputdir << "'" << endl;
 
 
     outputpath += "/" + NormalizeWikiNameToFilename(wikiname) + ".html";
@@ -776,7 +758,7 @@ void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t l
         os << "$(document).ready(function() {\n";
         os << onload;
         os << "});\n";
-        os << "//]>\n";
+        os << "//]]>\n";
         os << "</script>\n";
     }
 
@@ -1046,8 +1028,11 @@ void Wiki::GetImageHTML(ostream &os,
                 (*imginst)->LoadDimensions();
                 wikidb->WriteImageInstance(*imginst);
             }
-            width = "style=\"width: "
-                + to_string((*imginst)->width) + "px;\"";
+            if ((*imginst)->width > 0)
+            {
+                width = "style=\"width: "
+                    + to_string((*imginst)->width) + "px;\"";
+            }
             if (imginstances.size() > 1)
             {
                 caption += " (" + to_string((*imginst)->width)
@@ -1091,11 +1076,9 @@ void Wiki::GetImageHTML(ostream &os,
 
         if (hasImage)
         {
-            cerr << "Investigating lightbox for " << imagename << endl;
             ImageInstancePtr zoominst(wikidb->ImageInstanceLightboxZoom(img));
             if (ImageInstancePtr() != zoominst)
             {
-                cerr << "Found lightbox for " << imagename << endl;
                 os << "<a href=\"./";
                 os << WebPathFromFilename(zoominst->filename);
                 os << "\" rel=\"lightbox\" caption=\"";
@@ -1149,6 +1132,7 @@ void HTMLOutputterString::AddHTMLNodeEnd(const string &name)
     if (name == "p") os << endl << endl;
     if (name == "li") os << endl;
     if (name == "ul") os << endl;
+    if (name == "ol") os << endl;
     if (name == "blockquote") os << endl;
 }
 void HTMLOutputterString::AddWikiLink(const string &wikiname,
@@ -1185,7 +1169,7 @@ void HTMLOutputterWikiString::AddDPLList(const string &category,
             AddString(NormalizeWikiNameToFilename((*wikientry)->wikiname));
             AddString("\">");
             AddString((*wikientry)->wikiname);
-            AddString("</a>\n");
+            AddString("</a></li>\n");
         }
         AddString("</ul>");
     }
@@ -1253,20 +1237,15 @@ int Wiki::ScanImages(const char *path)
     FileFind(path,
              [this, &imagecount](fs::directory_iterator dir_iter)
              {
-                 string path(dir_iter->path().string());
-                 size_t pos = path.rfind('.');
-                 if (pos != string::npos)
+                 if (!strcasecmp(dir_iter->path().filename().extension().c_str(), ".jpg"))
                  {
-                     if (!strcasecmp(path.c_str() + pos, ".jpg"))
-                     {
-                         ++imagecount;
-                         this->LoadJPEGData(path);
-                     }
-                     else if (!strcasecmp(path.c_str() + pos, ".png"))
-                     {
-                         ++imagecount;
-                         this->LoadPNGData(path);
-                     }
+                     ++imagecount;
+                     this->LoadJPEGData(dir_iter->path().c_str());
+                 }
+                 else if (!strcasecmp(dir_iter->path().filename().extension().c_str(), ".png"))
+                 {
+                     ++imagecount;
+                     this->LoadPNGData(dir_iter->path().c_str());
                  }
              }
         );
@@ -1315,6 +1294,13 @@ void Wiki::DoEverything()
     wikidb->EndTransaction();
     CopyChangedFiles(staging_area, output_area);
 }
+
+void Wiki::RebuildDirtyFiles()
+{
+    RebuildDirtyFiles(staging_area);
+    CopyChangedFiles(staging_area, output_area);
+}
+
 
 void Wiki::ScanWikiFiles()
 {
@@ -1600,8 +1586,11 @@ void Wiki::ScanDPLFiles()
         if (!StartsWithImage((*wikientry)->wikiname, imagename))
         {
             string s(LoadWikiText(*wikientry));
-            if (s.find("<dpl") != string::npos)
+
+            if (s.find("<dpl") != string::npos
+                || s.find("<DPL") != string::npos)
             {
+                cout << "Found dpl in " << (*wikientry)->wikiname <<endl;
                 (*wikientry)->needsContentRebuild = true;
                 wikidb->WriteWikiEntry(*wikientry);
             }
@@ -1609,6 +1598,7 @@ void Wiki::ScanDPLFiles()
     }
 
     RebuildDirtyFiles(staging_area);
+    CopyChangedFiles(staging_area, output_area);
     wikidb->EndTransaction();
 }
 

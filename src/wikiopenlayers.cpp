@@ -60,7 +60,7 @@ Regex regex_kml("kml",
                 "^(kml)\\:(.*)(\\n|$)");
 
 Regex regex_gpstrack("gpstrack",
-                     "^(gpstrack):(.*?)\\/(.*?)\\/(.*?)(\\/\\n|$)");
+                     "^(gpstrack):(.*?)\\/(.*?)\\/(.*?)(\\/\\n|\n|$)");
 
 Regex regex_dotkml("dotkml",
                    "^(.*\\.kml)(\\n|$)");
