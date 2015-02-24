@@ -18,6 +18,7 @@
 #include <ctype.h>
 
 #include "fbynet.h"
+#include <iostream>
 
 using namespace FbyHelpers;
 
@@ -101,7 +102,7 @@ ServerPtr Server::listen(int socket_num)
 
     fd = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     socket_opt = 1; 
-   setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&socket_opt,sizeof(socket_opt));
+    setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&socket_opt,sizeof(socket_opt));
     fcntl(fd,F_SETFL,O_NONBLOCK);
     struct sockaddr_storage  ss;
     memcpy(&ss,res->ai_addr,res->ai_addrlen);
@@ -300,10 +301,10 @@ Net::loop()
     releasesignals();
 }
 
-static bool AddStringUntilWhitespace(std::string &str, const char **data, size_t &length, bool trimTrailing = true)
+static bool AddStringUntilWhitespace(std::string &str, const char **data, ssize_t &length, bool trimTrailing = true)
 {
     bool nextState = false;
-    size_t i;
+    ssize_t i;
     for (i = 0; i < length && !isspace((*data)[i]); ++i)
     {}
     str += std::string((*data), i);
@@ -320,10 +321,11 @@ static bool AddStringUntilWhitespace(std::string &str, const char **data, size_t
     return nextState;
 }
 
-void HTTPRequest::ReadData(const char *data, size_t length)
+void HTTPRequest::ReadData(const char *data, ssize_t length)
 {
     while (length > 0)
     {
+        std::cout << "State " << readState << " length " << length << " char '" << *data << "'" << std::endl;
         switch (readState)
         {
         case 0: // GET/POST/etc
@@ -363,3 +365,16 @@ void HTTPRequest::ReadData(const char *data, size_t length)
         }
     }
 }
+
+
+HTTPRequest::HTTPRequest() 
+    :
+    BaseObj(BASEOBJINIT(HTTPRequest)),
+    readState(),
+    method(),
+    path(),
+    protocol(),
+    headers()
+{
+}
+              

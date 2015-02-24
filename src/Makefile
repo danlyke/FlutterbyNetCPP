@@ -18,7 +18,7 @@ CFLAGS= -std=c++11 -Wall -Wextra -g -fPIC -I /usr/include/postgresql -I$(HOME)/i
 
 # -I /home/danlyke/code/gtest-1.7.0/include/
 # -L /home/danlyke/code/gtest-1.7.0/ -lgtest
-LDFLAGS= -L$(HOME)/lib -L. -lfby -lsqlite3 -lpq -lboost_filesystem -lboost_system -lgdbm -lpcre -lboost_iostreams  -l boost_program_options -lcgicc -lgtest -lgtest_main -lpthread
+LDFLAGS= -L. -L$(HOME)/lib -lfby -lsqlite3 -lpq -lboost_filesystem -lboost_system -lgdbm -lpcre -lboost_iostreams  -l boost_program_options -lcgicc -lgtest -lgtest_main -lpthread
 
 LIBSOURCES=fbystd.cpp parsertokens.cpp textparse.yy.cpp fbystring.cpp fbyparsetree.cpp fbyregex.cpp fby_core_unix_array.cpp fby_core_unix_helpers.cpp fby_core_unix.cpp fbydb.cpp fbydb_sqlite3.cpp fbydb_postgresql.cpp fbyregexparser.cpp fbytreebuilder.cpp fbywikistrings.cpp fbynetserver.cpp fbyfileutils.cpp fbyimageutils.cpp fbyfilefind.cpp
 
@@ -33,7 +33,7 @@ EXESOURCES= fixedstringextractor.cpp sqlextractor.cpp $(EXE_TEST_SOURCES) $(EXE_
 # copychangedfiles.cpp
 
 
-EXE2SOURCES= fby.cpp fby_test.cpp test_fbydb.cpp scaninputwikifiles.cpp scanimages.cpp parsewikifiletostaging.cpp test_regexparse.cpp parsewikifilesforlinks.cpp scanwikifilesforlinks.cpp rebuilddirtyfiles.cpp getstatus.cgi.cpp setstatus.cgi.cpp test_fbyregex.cpp test_microformats.cpp test_parsehtml.cpp
+EXE2SOURCES= fby.cpp fby_test.cpp test_fbydb.cpp scaninputwikifiles.cpp scanimages.cpp parsewikifiletostaging.cpp test_regexparse.cpp parsewikifilesforlinks.cpp scanwikifilesforlinks.cpp rebuilddirtyfiles.cpp getstatus.cgi.cpp setstatus.cgi.cpp test_fbyregex.cpp test_microformats.cpp test_parsehtml.cpp test_nethttpheaders.cpp
 
 
 OUTPUTDIRECTORIES= ../obj ../bin
