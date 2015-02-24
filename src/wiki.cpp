@@ -10,11 +10,11 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "wikistrings.h"
+#include "fbywikistrings.h"
 #include "fbyfilefind.h"
 #include "fbyregex.h"
-#include "regexparser.h"
-#include "stringutil.h"
+#include "fbyregexparser.h"
+#include "fbystring.h"
 #include "wikiopenlayers.h"
 #include "wikidpl.h"
 #include "wikivideoflash.h"

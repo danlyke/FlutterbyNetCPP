@@ -7,7 +7,7 @@
 #include <map>
 
 #include "wiki.h"
-#include "regexparser.h"
+#include "fbyregexparser.h"
 
 
 using namespace std;

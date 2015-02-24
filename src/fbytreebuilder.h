@@ -2,7 +2,7 @@
 #define TREEBUILDER_H_INCLUDED
 #include <algorithm>
 #include <functional>
-#include "parsetree.h"
+#include "fbyparsetree.h"
 FBYCLASS(HTMLOutputter);
 
 class ParseTreeNode;

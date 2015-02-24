@@ -2,8 +2,8 @@
 #define REGEXPARSER_INCLUDED_H
 
 #include "fbyregex.h"
-#include "parsetree.h"
-#include "treebuilder.h"
+#include "fbyparsetree.h"
+#include "fbytreebuilder.h"
 
 class MarkedUpTextParser
 {

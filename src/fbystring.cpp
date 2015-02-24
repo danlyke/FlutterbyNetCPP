@@ -1,6 +1,6 @@
 #include <sys/types.h>
 #include <string.h>
-#include "stringutil.h"
+#include "fbystring.h"
 
 size_t RemoveCRs(char *buffer, size_t length)
 {

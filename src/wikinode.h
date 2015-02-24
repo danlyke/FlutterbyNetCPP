@@ -1,6 +1,6 @@
 #ifndef WIKINODE_H_INCLUDED
 #define WIKINODE_H_INCLUDED
-#include "treebuilder.h"
+#include "fbytreebuilder.h"
 
 class WikiEmptyNode : public ParseTreeNode {
 protected:

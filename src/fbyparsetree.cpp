@@ -1,5 +1,5 @@
-#include "parsetree.h"
-#include "wikistrings.h"
+#include "fbyparsetree.h"
+#include "fbywikistrings.h"
 
 HTMLOutputter::HTMLOutputter()
     : FbyHelpers::BaseObj(BASEOBJINIT(HTMLOutputter))

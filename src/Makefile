@@ -1,3 +1,7 @@
+PREFIX?=$(HOME)
+
+
+
 #WEBSITEBASE=/home/danlyke/websites/flutterby.net/code
 WEBSITEBASE=$(shell (test -d /home/danlyke/websites/flutterby.net/code && echo /home/danlyke/websites/flutterby.net/code) || (test -d /home/danlyke/websites/flutterby.net/ && echo /home/danlyke/websites/flutterby.net/) )
 
@@ -8,17 +12,26 @@ HTMLTARGET=/home/danlyke/websites/flutterby.net/public_html_static/
 vpath %.cpp .
 
 CC=g++
-CFLAGS= -std=c++11 -Wall -Wextra -Weffc++ -g -fPIC -I /usr/include/postgresql
+CFLAGS= -std=c++11 -Wall -Wextra -g -fPIC -I /usr/include/postgresql -I$(HOME)/include
+
+#-Weffc++ 
+
 # -I /home/danlyke/code/gtest-1.7.0/include/
 # -L /home/danlyke/code/gtest-1.7.0/ -lgtest
-LDFLAGS= -L. -lfby -lsqlite3 -lpq -lboost_filesystem -lboost_system -lgdbm -lpcre -lboost_iostreams  -l boost_program_options -lcgicc
-LIBSOURCES=fbystd.cpp parsertokens.cpp textparse.yy.cpp stringutil.cpp parsetree.cpp fbyregex.cpp fby_core_unix_array.cpp fby_core_unix_helpers.cpp fby_core_unix.cpp fbydb.cpp fbydb_sqlite3.cpp fbydb_postgresql.cpp regexparser.cpp treebuilder.cpp wikistrings.cpp netserver.cpp fbyfileutils.cpp fbyimageutils.cpp fbyfilefind.cpp
+LDFLAGS= -L$(HOME)/lib -L. -lfby -lsqlite3 -lpq -lboost_filesystem -lboost_system -lgdbm -lpcre -lboost_iostreams  -l boost_program_options -lcgicc -lgtest -lgtest_main -lpthread
+
+LIBSOURCES=fbystd.cpp parsertokens.cpp textparse.yy.cpp fbystring.cpp fbyparsetree.cpp fbyregex.cpp fby_core_unix_array.cpp fby_core_unix_helpers.cpp fby_core_unix.cpp fbydb.cpp fbydb_sqlite3.cpp fbydb_postgresql.cpp fbyregexparser.cpp fbytreebuilder.cpp fbywikistrings.cpp fbynetserver.cpp fbyfileutils.cpp fbyimageutils.cpp fbyfilefind.cpp
 
 SOURCES=sqldefinitions.cpp wiki.cpp wikidb.cpp wikiobjects.cpp wikinode.cpp wikivideoflash.cpp wikistatusupdate.cpp  wikiopenlayers.cpp wikidpl.cpp openlayerstemplate.cpp
 
-EXESOURCES=test_file.cpp test_lambda.cpp test_flex.cpp test_tester.cpp test_reset.cpp test_regex.cpp test_gdbm.cpp test_removecrs.cpp test_readstdout.cpp test_sqlite.cpp sqlextractor.cpp test_strftime.cpp test_findimageinfo.cpp  test_iter.cpp test_wikistring.cpp  fixedstringextractor.cpp test_boost_options.cpp test_netserver.cpp test_image_name_decomposition.cpp
+
+EXE_TEST_SOURCES=test_image_name_decomposition.cpp test_lib.cpp  test_subst.cpp test_zstring.cpp test_removecrs.cpp test_wikistring.cpp
+
+EXE_EXAMPLE_SOURCES=example_file.cpp example_lambda.cpp example_flex.cpp example_tester.cpp example_reset.cpp example_regex.cpp example_gdbm.cpp  example_readstdout.cpp example_sqlite.cpp  example_strftime.cpp example_findimageinfo.cpp  example_iter.cpp example_boost_options.cpp example_netserver.cpp 
+
+EXESOURCES= fixedstringextractor.cpp sqlextractor.cpp $(EXE_TEST_SOURCES) $(EXE_EXAMPLE_SOURCES)
 # copychangedfiles.cpp
-# test_subst.cpp
+
 
 EXE2SOURCES= fby.cpp fby_test.cpp test_fbydb.cpp scaninputwikifiles.cpp scanimages.cpp parsewikifiletostaging.cpp test_regexparse.cpp parsewikifilesforlinks.cpp scanwikifilesforlinks.cpp rebuilddirtyfiles.cpp getstatus.cgi.cpp setstatus.cgi.cpp test_fbyregex.cpp test_microformats.cpp test_parsehtml.cpp
 
@@ -153,6 +166,10 @@ $(EXECUTABLE2): $(EXE2OBJECTS) $(OBJECTS) libfby.a
 
 $(EXECUTABLE): $(EXEOBJECTS) libfby.a
 	$(CC) $(CFLAGS) -o $@ $(patsubst ../bin/%,../obj/%.o,$@) $(LDFLAGS)
+
+install:
+	ln -s `pwd`/libfby.a $(PREFIX)/lib/libfby.a
+	for a in fby*.h ; do ln -s `pwd`/$a $(PREFIX)/lib/$a ; done
 
 libfby.a : $(LIBOBJECTS)
 	ar rvs $@ $(LIBOBJECTS)

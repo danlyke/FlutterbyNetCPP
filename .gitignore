@@ -3,3 +3,8 @@ src/parsertokens.h
 src/sqldefinitions.cpp
 src/sqldefinitions.sql
 src/textparse.yy.cpp
+src/libfby.a
+bin/
+obj/
+temp/
+var/
