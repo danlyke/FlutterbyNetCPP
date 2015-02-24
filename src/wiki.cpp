@@ -46,7 +46,7 @@ public:
 ParseTreeNode *TreeBuilderWiki::NodeFactory(const string &tagname)
 {
     if (tagname == "openlayers") return new OpenLayersNode();
-    if (tagname == "DPL")
+    if (tagname == "DPL" || tagname == "dpl")
         return new DPLNode();
     if (tagname == "videoflash") return new VideoflashNode();
     if (tagname == "statusupdate") return new StatusUpdateNode(wikidb);
