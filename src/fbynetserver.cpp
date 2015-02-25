@@ -301,17 +301,19 @@ Net::loop()
     releasesignals();
 }
 
-static bool AddStringUntilWhitespace(std::string &str, const char **data, ssize_t &length, bool trimTrailing = true)
+static bool AddStringUntilWhitespace(std::string &str, const char **data, size_t &length, 
+                                     bool trimTrailing = true)
 {
     bool nextState = false;
-    ssize_t i;
+    size_t i;
     for (i = 0; i < length && !isspace((*data)[i]); ++i)
     {}
+
     str += std::string((*data), i);
     if (i < length) nextState = true;
     
     (*data) += i;
-    length -= -i;
+    length -= i;
     
     if (trimTrailing)
     {
@@ -321,7 +323,7 @@ static bool AddStringUntilWhitespace(std::string &str, const char **data, ssize_
     return nextState;
 }
 
-void HTTPRequest::ReadData(const char *data, ssize_t length)
+void HTTPRequest::ReadData(const char *data, size_t length)
 {
     while (length > 0)
     {
@@ -353,13 +355,29 @@ void HTTPRequest::ReadData(const char *data, ssize_t length)
         // \n\n
         case 3:
         {
-            if ('\r' == *data) readState = 4;
+            if ('\r' == *data) readState = 3;
             else if ('\n' == *data) readState = 5;
             else THROWEXCEPTION("Bad headers");
+            data++;
+            length--;
         }
         break;
+
         case 4:
         {
+            if ('\r' == *data) readState = 4;
+            else if ('\n' == *data) readState = donewithheaders;
+            data++;
+            length--;
+        }
+        break;
+        // got \n, another \n means end of headers
+        // \r means either header or data
+        case 4:
+        {
+            if ('\r' == *data) readState = 4;
+            data++;
+            length--;
         }
         break;
         }

@@ -21,6 +21,7 @@ int main(int, char**)
         while (*s)
         {
             request->ReadData(s,1);
+            ++s;
         }
         cout << "Method: " << request->method << endl;
         cout << "Path: " << request->path << endl;

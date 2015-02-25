@@ -95,6 +95,8 @@ public:
     std::string protocol;
     std::map< std::string, std::string > headers;
     void ReadData(const char *data, size_t length);
+
+    HTTPRequest();
 };
 
 

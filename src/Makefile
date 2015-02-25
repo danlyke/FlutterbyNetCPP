@@ -139,7 +139,7 @@ $(EXE2OBJECTS): | obj
 obj :
 	@mkdir -p $@
 
-../obj/%.o : %.cpp
+../obj/%.o : %.cpp $(PREFIX)/lib/libgtest.a
 	$(CC) -c $(CFLAGS) $< -o $@
 	$(CC) -MM $(CFLAGS) $< > ../obj/../obj/$*.d
 	@mv -f ../obj/$*.d ../obj/$*.d.tmp
@@ -174,6 +174,15 @@ install:
 libfby.a : $(LIBOBJECTS)
 	ar rvs $@ $(LIBOBJECTS)
 
+$(PREFIX)/lib/libgtest.a :
+	mkdir -p ../../vendor
+	cd ../../vendor
+	svn checkout http://googletest.googlecode.com/svn/trunk/ googletest-read-only
+	cd googletest-read-only
+	cmake ./
+	make
+	for a in *.a ; do ln -s `pwd`/$a $(PREFIX)/lib/*.a ; done
+	ln -s `pwd`/include/gtest $(PREFIX)/include/gtest
 
 # pull in dependency info for *existing* .o files
 -include $(OBJECTS:.o=.d)
