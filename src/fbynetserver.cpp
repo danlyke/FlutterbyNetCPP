@@ -301,89 +301,236 @@ Net::loop()
     releasesignals();
 }
 
-static bool AddStringUntilWhitespace(std::string &str, const char **data, size_t &length, 
-                                     bool trimTrailing = true)
+static bool AddStringUntilWhitespace(std::string &str, const char **data, size_t &length )
 {
     bool nextState = false;
     size_t i;
     for (i = 0; i < length && !isspace((*data)[i]); ++i)
     {}
 
-    str += std::string((*data), i);
+    str.append((*data), i);
     if (i < length) nextState = true;
     
     (*data) += i;
     length -= i;
-    
-    if (trimTrailing)
-    {
-        while (isspace(**data) && length > 0)
-        { (*data)++; length--; };
-    }
+
     return nextState;
 }
+void HTTPRequest::ConsumeLeadingWhitespace(const char **data, size_t &length)
+{
+    while (length && isspace(**data))
+    {
+        length--;
+        (*data)++;
+    }
+    if (!isspace(**data))
+    {
+        readState = &HTTPRequest::ReadHTTPMethod;
+    }
+}
+
+
+void HTTPRequest::ReadHTTPMethod(const char **data, size_t &length)
+{
+    if (AddStringUntilWhitespace(method, data, length))
+        readState = &HTTPRequest::ConsumeHTTPMethodWhitespace;
+}
+
+void HTTPRequest::ConsumeHTTPMethodWhitespace(const char **data, size_t &length)
+{
+    path.clear();
+    while (length && isspace(**data))
+    {
+        if (**data == '\r'
+            || **data == '\n')
+            THROWEXCEPTION("Unexpected newline after HTTP Method");
+        length--;
+        (*data)++;
+    }
+    if (length)
+        readState = &HTTPRequest::ReadHTTPPath;
+}
+
+void HTTPRequest::ReadHTTPPath(const char **data, size_t &length)
+{
+    if (AddStringUntilWhitespace(path,data,length))
+        readState = &HTTPRequest::ConsumeHTTPPathWhitespace;
+}
+
+void HTTPRequest::ConsumeHTTPPathWhitespace(const char **data, size_t &length)
+{
+    while (length && isspace(**data))
+    {
+        if (**data == '\r'
+            || **data == '\n')
+            THROWEXCEPTION("Unexpected newline after HTTP Path");
+
+        length--;
+        (*data)++;
+    }
+    if (length)
+        readState = &HTTPRequest::ReadHTTPProtocol;
+}
+
+void HTTPRequest::ReadHTTPProtocol(const char **data, size_t &length)
+{
+   if (AddStringUntilWhitespace(protocol,data,length))
+        readState = &HTTPRequest::ConsumeHTTPProtocolNewline;
+}
+
+void HTTPRequest::ConsumeHTTPProtocolNewline(const char **data, size_t &length)
+{
+    while (**data == '\r')
+    {
+        length--;
+        (*data)++;
+    }
+    if (**data == '\n')
+    { 
+        length--;
+        (*data)++;
+        headerName.clear();
+        readState = &HTTPRequest::ReadHTTPHeaderName;
+    }
+    else if (**data != '\r')
+        THROWEXCEPTION("Expected newline after HTTP Protocol");
+}
+
+void HTTPRequest::ReadHTTPHeaderName(const char **data, size_t &length)
+{
+    if (**data == '\r')
+    {
+        length--;
+        (*data)++;
+    }
+    else if (**data == '\n')
+    {
+        length--;
+        (*data)++;
+        if (!headerName.empty())
+            EmitNameValue(headerName, headerValue);
+        readState = &HTTPRequest::ReadHTTPRequestData;
+    }
+    else if (isspace(**data))
+    {
+        if (headerName.empty())
+            THROWEXCEPTION("Continuation of HTTP header with no header name");
+        readState = &HTTPRequest::ReadHTTPHeaderValue;
+    }
+    else
+    {
+        if (!headerName.empty())
+            EmitNameValue(headerName, headerValue);
+        headerName.clear();
+        headerValue.clear();
+        readState = &HTTPRequest::ReadHTTPHeaderNameContinue;
+    }
+}
+void HTTPRequest::ReadHTTPHeaderNameContinue(const char **data, size_t &length)
+{
+    size_t i = 0;
+    for (i = 0; i < length && (*data)[i] != ':'; ++i)
+    {
+        if (isspace((*data)[i]))
+            THROWEXCEPTION("Unexpected whitespace in HTTP header name");
+    }
+    if ((*data)[i] == ':')
+    {
+        headerName.append(*data, i);
+        headerValue.clear();
+        ++i;
+        readState = &HTTPRequest::ConsumeHTTPHeaderNameWhitespace;
+    }
+    else
+    {
+        headerName.append(*data, i);
+    }
+    length -= i;
+    *data += i;
+}
+void HTTPRequest::ConsumeHTTPHeaderNameWhitespace(const char **data, size_t &length)
+{
+    while (length && isspace(**data))
+    {
+        if (**data == '\r'
+            || **data == '\n')
+            THROWEXCEPTION("Unexpected newline after HTTP Path");
+
+        length--;
+        (*data)++;
+    }
+    if (length)
+        readState = &HTTPRequest::ReadHTTPHeaderValue;
+}
+
+void HTTPRequest::ReadHTTPHeaderValue(const char **data, size_t &length)
+{
+    size_t i = 0;
+    for (i = 0; i < length && (*data)[i] != '\r' && (*data)[i] != '\n'; ++i)
+    {
+    }
+    if (i)
+    {
+        headerValue.append(*data, i);
+        *data += i;
+        length -= i;
+    }
+    if (**data == '\r')
+    {
+        (*data)++;
+        length--;
+    }
+    if (**data == '\n')
+    {
+        (*data)++;
+        length--;
+        readState = &HTTPRequest::ReadHTTPHeaderName;
+    }
+
+}
+
+void HTTPRequest::ReadHTTPRequestData(const char **data, size_t &length)
+{
+    // Should forward this data to the handler for this request.
+    // Should also keep track of bytes sent against header info for multipart
+    *data += length;
+    length = 0;
+}
+
 
 void HTTPRequest::ReadData(const char *data, size_t length)
 {
     while (length > 0)
-    {
-        std::cout << "State " << readState << " length " << length << " char '" << *data << "'" << std::endl;
-        switch (readState)
-        {
-        case 0: // GET/POST/etc
-        {
-            if (AddStringUntilWhitespace(method, &data, length))
-                readState =1;
-        }
-        break;
-        case 1: // Path
-        {
-            if (AddStringUntilWhitespace(path, &data, length))
-                readState = 2;
-        }
-        break;
-        case 2: // HTTP/1.1
-        {
-            if (AddStringUntilWhitespace(protocol, &data, length, false))
-                readState = 3;
-        }
-        break;
-        // Now we're into end of line handling ...
-        // \r\n
-        // \r\r
-        // \n\r
-        // \n\n
-        case 3:
-        {
-            if ('\r' == *data) readState = 3;
-            else if ('\n' == *data) readState = 5;
-            else THROWEXCEPTION("Bad headers");
-            data++;
-            length--;
-        }
-        break;
-
-        case 4:
-        {
-            if ('\r' == *data) readState = 4;
-            else if ('\n' == *data) readState = donewithheaders;
-            data++;
-            length--;
-        }
-        break;
-        // got \n, another \n means end of headers
-        // \r means either header or data
-        case 4:
-        {
-            if ('\r' == *data) readState = 4;
-            data++;
-            length--;
-        }
-        break;
-        }
+    { 
+        size_t oldLength(length);
+        void (HTTPRequest::*oldReadState)(const char **data, size_t &length) (readState);
+        const char *oldData(data);
+    
+        ((this)->*(readState))(&data, length);
+        if (oldLength - length != (size_t)(data - oldData))
+            THROWEXCEPTION("Read state error: data & length out of sync");
+        if (length == oldLength && (readState == oldReadState))
+            THROWEXCEPTION("Read state infinite loop detected");
     }
 }
 
+
+void HTTPRequest::EmitNameValue(const std::string &name, const std::string &value)
+{
+    std::cout << "Name: " << name << " value " << value << std::endl;
+}
+
+void HTTPRequest::ResetReadState()
+{
+    method.clear();
+    path.clear();
+    protocol.clear();
+    headerName.clear();
+    headerValue.clear();
+
+    readState = &HTTPRequest::ConsumeLeadingWhitespace;
+    
+}
 
 HTTPRequest::HTTPRequest() 
     :
@@ -391,8 +538,8 @@ HTTPRequest::HTTPRequest()
     readState(),
     method(),
     path(),
-    protocol(),
-    headers()
+    protocol()
 {
+    ResetReadState();
 }
               

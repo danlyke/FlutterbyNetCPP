@@ -88,14 +88,36 @@ public:
 
 FBYCLASS(HTTPRequest) : public ::FbyHelpers::BaseObj
 {
+private: 
+    void ConsumeLeadingWhitespace(const char **data, size_t &length);
+    void ReadHTTPMethod(const char **data, size_t &length);
+    void ConsumeHTTPMethodWhitespace(const char **data, size_t &length);
+    void ReadHTTPPath(const char **data, size_t &length);
+    void ConsumeHTTPPathWhitespace(const char **data, size_t &length);
+    void ReadHTTPProtocol(const char **data, size_t &length);
+    void ConsumeHTTPProtocolNewline(const char **data, size_t &length);
+    void ReadHTTPHeaderName(const char **data, size_t &length);
+    void ReadHTTPHeaderNameContinue(const char **data, size_t &length);
+    void ConsumeHTTPHeaderNameWhitespace(const char **data, size_t &length);
+    void ReadHTTPHeaderValue(const char **data, size_t &length);
+    void ReadHTTPRequestData(const char **data, size_t &length);
+
+
+    void ResetReadState();
+
+protected:
+    virtual void EmitNameValue(const std::string &name, const std::string &value);
+
 public:
-    int readState;
+    void (HTTPRequest::*readState)(const char **data, size_t &length);
+
     std::string method;
     std::string path;
     std::string protocol;
-    std::map< std::string, std::string > headers;
-    void ReadData(const char *data, size_t length);
 
+    std::string headerName;
+    std::string headerValue;
+    void ReadData(const char *data, size_t length);
     HTTPRequest();
 };
 

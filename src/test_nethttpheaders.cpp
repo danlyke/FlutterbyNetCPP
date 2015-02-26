@@ -8,16 +8,58 @@ using namespace FbyHelpers;
 const char requestText[] =
     "GET / HTTP/1.1\r\n"
     "Host: home.flutterby.net\r\n"
+    "Another-Header: this one goes\r\n"
+    "  all the way to two lines\r\n"
     "\r\n";
 
 // TEST(HeaderTest,ParseRequest)
 int main(int, char**)
 {
+    try
+    {
+        HTTPRequestPtr request(new HTTPRequest);
+        request->ReadData(requestText,sizeof(requestText)-1);
+//        EXPECT_EQ(request->method, string("GET"));
+//        EXPECT_EQ(request->path, string("/"));
+//        EXPECT_EQ(request->protocol ,string("HTTP/1.1"));
+    }
+    catch(  FbyBaseExceptionPtr e)
+    {
+        cout << "<b><i>Error: ";
+        cout << e->file << ":" << e->line << " " << e->Message;
+        cout << "</i></b><br />\n";
+        return 1;
+    }
+    return 0;
 
     try
     {
         HTTPRequestPtr request(new HTTPRequest);
         const char *s = requestText;
+        while (*s)
+        {
+            request->ReadData(s,1);
+            ++s;
+        }
+        cout << "Method: " << request->method << endl;
+        cout << "Path: " << request->path << endl;
+        cout << "Protocol: " << request->protocol << endl;
+    }
+    catch(  FbyBaseExceptionPtr e)
+    {
+        cout << "<b><i>Error: ";
+        cout << e->file << ":" << e->line << " " << e->Message;
+        cout << "</i></b><br />\n";
+        return 1;
+    }
+
+    try
+    {
+        HTTPRequestPtr request(new HTTPRequest);
+        const char *s = requestText;
+        request->ReadData(s,4);
+        s += 4;
+
         while (*s)
         {
             request->ReadData(s,1);
@@ -39,19 +81,4 @@ int main(int, char**)
         return 1;
     }
     
-    try
-    {
-        HTTPRequestPtr request(new HTTPRequest);
-        request->ReadData(requestText,sizeof(requestText)-1);
-//        EXPECT_EQ(request->method, string("GET"));
-//        EXPECT_EQ(request->path, string("/"));
-//        EXPECT_EQ(request->protocol ,string("HTTP/1.1"));
-    }
-    catch(  FbyBaseExceptionPtr e)
-    {
-        cout << "<b><i>Error: ";
-        cout << e->file << ":" << e->line << " " << e->Message;
-        cout << "</i></b><br />\n";
-        return 1;
-    }
 }
