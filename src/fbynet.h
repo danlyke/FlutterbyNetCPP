@@ -17,7 +17,7 @@ FBYCLASSPTR(HTTPResponse);
 
 typedef std::function<void (const char *data, size_t length)> OnDataFunction;
 typedef std::function<void ()> OnDrainFunction;
-typedef std::function<void (SocketPtr socket)> CreateServerFunction;
+typedef std::function<SocketPtr ()> CreateServerFunction;
 typedef std::function<void (HTTPRequestPtr request, HTTPResponsePtr response)> RespondToHTTPRequestFunction;
 
 FBYCLASS(Socket) : public ::FbyHelpers::BaseObj
@@ -34,8 +34,10 @@ private:
     Net * net;
     std::string queuedWrite;
     bool emitDrain;
+    
+    void SetSocketServerAndFile(Net* net, int fd);
 public:
-    Socket(Net* net, int fd);
+    Socket();
     void onData(OnDataFunction on_data)
     {
         this->on_data = on_data;
@@ -130,19 +132,26 @@ public:
 
 
 inline HTTPServer::HTTPServer(Net *net, RespondToHTTPRequestFunction)
-                  : Server(net, [](SocketPtr) {})
+                  : Server(net, []() {return SocketPtr(new Socket);})
 {
 }
 
 
-inline Socket::Socket(Net* net, int fd)
+inline Socket::Socket()
 : BaseObj(BASEOBJINIT(Socket)),
-              fd(fd), 
+              fd(-1), 
               on_data(), 
               on_drain(),
-              net(net),
+              net(),
               queuedWrite(), emitDrain(false)
 {
+}
+
+inline void Socket::SetSocketServerAndFile(Net* net, int fd)
+{
+    std::cout << "Setting socket server and file " << fd << std::endl;
+    this->net = net;
+    this->fd = fd;
 }
 
 

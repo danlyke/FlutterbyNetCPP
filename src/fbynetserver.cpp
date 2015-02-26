@@ -17,8 +17,6 @@
 #include <netdb.h>
 #include <ctype.h>
 
-#include "fbynet.h"
-#include <iostream>
 
 using namespace FbyHelpers;
 
@@ -220,9 +218,9 @@ Net::loop()
 				}	
 				else
 				{
-                    SocketPtr socket(new Socket(this,fd));
+                    SocketPtr socket((*server)->create_func());
+                    socket->SetSocketServerAndFile(this, fd);
 					fcntl(fd,F_SETFL,O_NONBLOCK);
-                    (*server)->create_func(socket);
                     sockets.push_back(socket);
 					fprintf(stderr,"%03d: new request (%d)\n",
                             (*server)->fd, fd);
@@ -517,7 +515,6 @@ void HTTPRequest::ReadData(const char *data, size_t length)
 
 void HTTPRequest::EmitNameValue(const std::string &name, const std::string &value)
 {
-    std::cout << "Name: " << name << " value " << value << std::endl;
 }
 
 void HTTPRequest::ResetReadState()
