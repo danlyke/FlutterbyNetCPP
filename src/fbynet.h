@@ -87,9 +87,15 @@ public:
 };
 
 
+FBYCLASS(HTTPResponse) : public Socket
+{
+public:
+    write
+}
 
 FBYCLASS(HTTPRequest) : public ::FbyHelpers::BaseObj
 {
+    friend class HTTPServer;
 private: 
     void ConsumeLeadingWhitespace(const char **data, size_t &length);
     void ReadHTTPMethod(const char **data, size_t &length);
@@ -108,7 +114,7 @@ private:
     void ResetReadState();
 
 protected:
-    virtual void EmitNameValue(const std::string &name, const std::string &value);
+    virtual void EmitNameValue(std::string name, const std::string &value);
 
 public:
     void (HTTPRequest::*readState)(const char **data, size_t &length);
@@ -116,6 +122,7 @@ public:
     std::string method;
     std::string path;
     std::string protocol;
+    std::map<std::string, std::string> headers;
 
     std::string headerName;
     std::string headerValue;

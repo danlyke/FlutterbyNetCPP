@@ -394,6 +394,20 @@ void HTTPRequest::ConsumeHTTPProtocolNewline(const char **data, size_t &length)
         THROWEXCEPTION("Expected newline after HTTP Protocol");
 }
 
+
+void HTTPRequest::GenerateHTTPResponder
+{
+    for (auto responder = responders.begin();
+         responder != responders.end();
+         ++responder)
+    {
+        if ((*responder)->wants(host, method, path))
+        {
+            response = (*responder)->create_response(host, method, path);
+        }
+    }
+}
+
 void HTTPRequest::ReadHTTPHeaderName(const char **data, size_t &length)
 {
     if (**data == '\r')
@@ -407,6 +421,7 @@ void HTTPRequest::ReadHTTPHeaderName(const char **data, size_t &length)
         (*data)++;
         if (!headerName.empty())
             EmitNameValue(headerName, headerValue);
+        GenerateHTTPResponder();
         readState = &HTTPRequest::ReadHTTPRequestData;
     }
     else if (isspace(**data))
@@ -513,8 +528,10 @@ void HTTPRequest::ReadData(const char *data, size_t length)
 }
 
 
-void HTTPRequest::EmitNameValue(const std::string &name, const std::string &value)
+void HTTPRequest::EmitNameValue(std::string name, const std::string &value)
 {
+    std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+    headers[name] = value;
 }
 
 void HTTPRequest::ResetReadState()
@@ -540,3 +557,33 @@ HTTPRequest::HTTPRequest()
     ResetReadState();
 }
               
+
+
+#if 0
+NODEJS drain example
+// Write the data to the supplied writable stream 1MM times.
+// Be attentive to back-pressure.
+function writeOneMillionTimes(writer, data, encoding, callback) {
+    var i = 1000000;
+    write();
+    function write() {
+        var ok = true;
+        do {
+            i -= 1;
+            if (i === 0) {
+                // last time!
+                writer.write(data, encoding, callback);
+            } else {
+                // see if we should continue, or wait
+                // don't pass the callback, because we're not done yet.
+                ok = writer.write(data, encoding);
+            }
+        } while (i > 0 && ok);
+        if (i > 0) {
+            // had to stop early!
+            // write some more once it drains
+            writer.once('drain', write);
+        }
+    }
+
+#endif
