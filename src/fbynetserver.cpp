@@ -395,15 +395,17 @@ void HTTPRequest::ConsumeHTTPProtocolNewline(const char **data, size_t &length)
 }
 
 
+
+
 void HTTPRequest::GenerateHTTPResponder
 {
-    for (auto responder = responders.begin();
-         responder != responders.end();
-         ++responder)
+    for (auto route = routes.begin();
+         route != routes.end();
+         ++route)
     {
-        if ((*responder)->wants(host, method, path))
+        if ((*route)->wants(host, method, path))
         {
-            response = (*responder)->create_response(host, method, path);
+            response = (*route)->create_response(host, method, path, headers);
         }
     }
 }

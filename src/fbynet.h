@@ -19,6 +19,8 @@ typedef std::function<void (const char *data, size_t length)> OnDataFunction;
 typedef std::function<void ()> OnDrainFunction;
 typedef std::function<SocketPtr ()> CreateServerFunction;
 typedef std::function<void (HTTPRequestPtr request, HTTPResponsePtr response)> RespondToHTTPRequestFunction;
+typedef std::function<HTTPResponsePtr (std::string host, std::string method, std::string path,
+                                       std::vector< std::string, std::string> attributes ) > CreateHTTPResponseFunction;
 
 FBYCLASS(Socket) : public ::FbyHelpers::BaseObj
 {
@@ -90,8 +92,16 @@ public:
 FBYCLASS(HTTPResponse) : public Socket
 {
 public:
-    write
-}
+    write();
+};
+
+FBYCLASS(HTTPRoute) : public ::FbyHelpers::BaseObj
+{
+public:
+
+    bool wants(const std::string &host, const std::string &method, const std::string &path);
+};
+
 
 FBYCLASS(HTTPRequest) : public ::FbyHelpers::BaseObj
 {
