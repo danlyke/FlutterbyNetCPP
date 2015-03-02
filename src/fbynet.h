@@ -17,7 +17,7 @@ FBYCLASSPTR(HTTPResponse);
 
 typedef std::function<void (const char *data, size_t length)> OnDataFunction;
 typedef std::function<void ()> OnDrainFunction;
-typedef std::function<SocketPtr ()> CreateServerFunction;
+typedef std::function<void (SocketPtr)> CreateServerFunction;
 typedef std::function<void (HTTPRequestPtr request, HTTPResponsePtr response)> RespondToHTTPRequestFunction;
 typedef std::function<HTTPResponsePtr (std::string host, std::string method, std::string path,
                                        std::vector< std::string, std::string> attributes ) > CreateHTTPResponseFunction;
@@ -92,7 +92,6 @@ public:
 FBYCLASS(HTTPResponse) : public Socket
 {
 public:
-    write();
 };
 
 FBYCLASS(HTTPRoute) : public ::FbyHelpers::BaseObj
@@ -103,7 +102,22 @@ public:
 };
 
 
+FBYCLASSPTR(HTTPRequestBuilder);
+FBYCLASSPTR(HTTPRequest);
 FBYCLASS(HTTPRequest) : public ::FbyHelpers::BaseObj
+{
+    friend class HTTPRequestBuilder;
+public:
+    std::string method;
+    std::string path;
+    std::string protocol;
+    std::map<std::string, std::string> headers;
+
+    HTTPRequest();
+};
+
+
+FBYCLASS(HTTPRequestBuilder) : public ::FbyHelpers::BaseObj
 {
     friend class HTTPServer;
 private: 
@@ -118,40 +132,40 @@ private:
     void ReadHTTPHeaderNameContinue(const char **data, size_t &length);
     void ConsumeHTTPHeaderNameWhitespace(const char **data, size_t &length);
     void ReadHTTPHeaderValue(const char **data, size_t &length);
-    void ReadHTTPRequestData(const char **data, size_t &length);
-
+    void ReadHTTPRequestBuilderData(const char **data, size_t &length);
 
     void ResetReadState();
 
+
+    void GenerateHTTPResponder();
 protected:
     virtual void EmitNameValue(std::string name, const std::string &value);
 
 public:
-    void (HTTPRequest::*readState)(const char **data, size_t &length);
+    void (HTTPRequestBuilder::*readState)(const char **data, size_t &length);
 
-    std::string method;
-    std::string path;
-    std::string protocol;
-    std::map<std::string, std::string> headers;
+    HTTPRequestPtr request;
 
     std::string headerName;
     std::string headerValue;
     void ReadData(const char *data, size_t length);
-    HTTPRequest();
+    HTTPRequestBuilder();
 };
 
+FBYCLASSPTR(HTTPServer);
 
 FBYCLASS(HTTPServer) : public Server
 {
 public:
-                     HTTPServer(Net *net, RespondToHTTPRequestFunction f);
+    HTTPServer(Net *net, RespondToHTTPRequestFunction f);
+    
 };
 
 
-inline HTTPServer::HTTPServer(Net *net, RespondToHTTPRequestFunction)
-                  : Server(net, []() {return SocketPtr(new Socket);})
-{
-}
+//inline HTTPServer::HTTPServer(Net *net, RespondToHTTPRequestFunction)
+//                  : Server(net, []() {})
+//{
+//}
 
 
 inline Socket::Socket()

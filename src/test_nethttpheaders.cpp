@@ -17,7 +17,7 @@ int main(int, char**)
 {
     try
     {
-        HTTPRequestPtr request(new HTTPRequest);
+        HTTPRequestBuilderPtr request(new HTTPRequestBuilder);
         request->ReadData(requestText,sizeof(requestText)-1);
 //        EXPECT_EQ(request->method, string("GET"));
 //        EXPECT_EQ(request->path, string("/"));
@@ -34,16 +34,16 @@ int main(int, char**)
 
     try
     {
-        HTTPRequestPtr request(new HTTPRequest);
+        HTTPRequestBuilderPtr request(new HTTPRequestBuilder);
         const char *s = requestText;
         while (*s)
         {
             request->ReadData(s,1);
             ++s;
         }
-        cout << "Method: " << request->method << endl;
-        cout << "Path: " << request->path << endl;
-        cout << "Protocol: " << request->protocol << endl;
+        cout << "Method: " << request->request->method << endl;
+        cout << "Path: " << request->request->path << endl;
+        cout << "Protocol: " << request->request->protocol << endl;
     }
     catch(  FbyBaseExceptionPtr e)
     {
@@ -55,7 +55,7 @@ int main(int, char**)
 
     try
     {
-        HTTPRequestPtr request(new HTTPRequest);
+        HTTPRequestBuilderPtr request(new HTTPRequestBuilder);
         const char *s = requestText;
         request->ReadData(s,4);
         s += 4;
@@ -65,13 +65,13 @@ int main(int, char**)
             request->ReadData(s,1);
             ++s;
         }
-        cout << "Method: " << request->method << endl;
-        cout << "Path: " << request->path << endl;
-        cout << "Protocol: " << request->protocol << endl;
+        cout << "Method: " << request->request->method << endl;
+        cout << "Path: " << request->request->path << endl;
+        cout << "Protocol: " << request->request->protocol << endl;
       
-//        EXPECT_EQ(request->method, string("GET"));
-//        EXPECT_EQ(request->path, string("/"));
-//        EXPECT_EQ(request->protocol, string("HTTP/1.1"));
+//        EXPECT_EQ(request->request->method, string("GET"));
+//        EXPECT_EQ(request->request->path, string("/"));
+//        EXPECT_EQ(request->request->protocol, string("HTTP/1.1"));
     }
     catch(  FbyBaseExceptionPtr e)
     {
