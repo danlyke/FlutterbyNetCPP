@@ -218,12 +218,13 @@ Net::loop()
 				}	
 				else
 				{
-                    SocketPtr socket((*server)->create_func());
+                    SocketPtr socket(new Socket);
                     socket->SetSocketServerAndFile(this, fd);
 					fcntl(fd,F_SETFL,O_NONBLOCK);
                     sockets.push_back(socket);
 					fprintf(stderr,"%03d: new request (%d)\n",
                             (*server)->fd, fd);
+                    (*server)->create_func(socket);
 				}
 			}
 		}
@@ -314,7 +315,7 @@ static bool AddStringUntilWhitespace(std::string &str, const char **data, size_t
 
     return nextState;
 }
-void HTTPRequest::ConsumeLeadingWhitespace(const char **data, size_t &length)
+void HTTPRequestBuilder::ConsumeLeadingWhitespace(const char **data, size_t &length)
 {
     while (length && isspace(**data))
     {
@@ -323,20 +324,20 @@ void HTTPRequest::ConsumeLeadingWhitespace(const char **data, size_t &length)
     }
     if (!isspace(**data))
     {
-        readState = &HTTPRequest::ReadHTTPMethod;
+        readState = &HTTPRequestBuilder::ReadHTTPMethod;
     }
 }
 
 
-void HTTPRequest::ReadHTTPMethod(const char **data, size_t &length)
+void HTTPRequestBuilder::ReadHTTPMethod(const char **data, size_t &length)
 {
-    if (AddStringUntilWhitespace(method, data, length))
-        readState = &HTTPRequest::ConsumeHTTPMethodWhitespace;
+    if (AddStringUntilWhitespace(request->method, data, length))
+        readState = &HTTPRequestBuilder::ConsumeHTTPMethodWhitespace;
 }
 
-void HTTPRequest::ConsumeHTTPMethodWhitespace(const char **data, size_t &length)
+void HTTPRequestBuilder::ConsumeHTTPMethodWhitespace(const char **data, size_t &length)
 {
-    path.clear();
+    request->path.clear();
     while (length && isspace(**data))
     {
         if (**data == '\r'
@@ -346,16 +347,16 @@ void HTTPRequest::ConsumeHTTPMethodWhitespace(const char **data, size_t &length)
         (*data)++;
     }
     if (length)
-        readState = &HTTPRequest::ReadHTTPPath;
+        readState = &HTTPRequestBuilder::ReadHTTPPath;
 }
 
-void HTTPRequest::ReadHTTPPath(const char **data, size_t &length)
+void HTTPRequestBuilder::ReadHTTPPath(const char **data, size_t &length)
 {
-    if (AddStringUntilWhitespace(path,data,length))
-        readState = &HTTPRequest::ConsumeHTTPPathWhitespace;
+    if (AddStringUntilWhitespace(request->path,data,length))
+        readState = &HTTPRequestBuilder::ConsumeHTTPPathWhitespace;
 }
 
-void HTTPRequest::ConsumeHTTPPathWhitespace(const char **data, size_t &length)
+void HTTPRequestBuilder::ConsumeHTTPPathWhitespace(const char **data, size_t &length)
 {
     while (length && isspace(**data))
     {
@@ -367,16 +368,16 @@ void HTTPRequest::ConsumeHTTPPathWhitespace(const char **data, size_t &length)
         (*data)++;
     }
     if (length)
-        readState = &HTTPRequest::ReadHTTPProtocol;
+        readState = &HTTPRequestBuilder::ReadHTTPProtocol;
 }
 
-void HTTPRequest::ReadHTTPProtocol(const char **data, size_t &length)
+void HTTPRequestBuilder::ReadHTTPProtocol(const char **data, size_t &length)
 {
-   if (AddStringUntilWhitespace(protocol,data,length))
-        readState = &HTTPRequest::ConsumeHTTPProtocolNewline;
+   if (AddStringUntilWhitespace(request->protocol,data,length))
+        readState = &HTTPRequestBuilder::ConsumeHTTPProtocolNewline;
 }
 
-void HTTPRequest::ConsumeHTTPProtocolNewline(const char **data, size_t &length)
+void HTTPRequestBuilder::ConsumeHTTPProtocolNewline(const char **data, size_t &length)
 {
     while (**data == '\r')
     {
@@ -388,27 +389,31 @@ void HTTPRequest::ConsumeHTTPProtocolNewline(const char **data, size_t &length)
         length--;
         (*data)++;
         headerName.clear();
-        readState = &HTTPRequest::ReadHTTPHeaderName;
+        readState = &HTTPRequestBuilder::ReadHTTPHeaderName;
     }
     else if (**data != '\r')
         THROWEXCEPTION("Expected newline after HTTP Protocol");
 }
 
 
-void HTTPRequest::GenerateHTTPResponder
+
+
+void HTTPRequestBuilder::GenerateHTTPResponder()
 {
-    for (auto responder = responders.begin();
-         responder != responders.end();
-         ++responder)
+#if 0
+    for (auto route = routes.begin();
+         route != routes.end();
+         ++route)
     {
-        if ((*responder)->wants(host, method, path))
+        if ((*route)->wants(host, method, path))
         {
-            response = (*responder)->create_response(host, method, path);
+            response = (*route)->create_response(host, method, path, headers);
         }
     }
+#endif
 }
 
-void HTTPRequest::ReadHTTPHeaderName(const char **data, size_t &length)
+void HTTPRequestBuilder::ReadHTTPHeaderName(const char **data, size_t &length)
 {
     if (**data == '\r')
     {
@@ -422,13 +427,13 @@ void HTTPRequest::ReadHTTPHeaderName(const char **data, size_t &length)
         if (!headerName.empty())
             EmitNameValue(headerName, headerValue);
         GenerateHTTPResponder();
-        readState = &HTTPRequest::ReadHTTPRequestData;
+        readState = &HTTPRequestBuilder::ReadHTTPRequestBuilderData;
     }
     else if (isspace(**data))
     {
         if (headerName.empty())
             THROWEXCEPTION("Continuation of HTTP header with no header name");
-        readState = &HTTPRequest::ReadHTTPHeaderValue;
+        readState = &HTTPRequestBuilder::ReadHTTPHeaderValue;
     }
     else
     {
@@ -436,10 +441,10 @@ void HTTPRequest::ReadHTTPHeaderName(const char **data, size_t &length)
             EmitNameValue(headerName, headerValue);
         headerName.clear();
         headerValue.clear();
-        readState = &HTTPRequest::ReadHTTPHeaderNameContinue;
+        readState = &HTTPRequestBuilder::ReadHTTPHeaderNameContinue;
     }
 }
-void HTTPRequest::ReadHTTPHeaderNameContinue(const char **data, size_t &length)
+void HTTPRequestBuilder::ReadHTTPHeaderNameContinue(const char **data, size_t &length)
 {
     size_t i = 0;
     for (i = 0; i < length && (*data)[i] != ':'; ++i)
@@ -452,7 +457,7 @@ void HTTPRequest::ReadHTTPHeaderNameContinue(const char **data, size_t &length)
         headerName.append(*data, i);
         headerValue.clear();
         ++i;
-        readState = &HTTPRequest::ConsumeHTTPHeaderNameWhitespace;
+        readState = &HTTPRequestBuilder::ConsumeHTTPHeaderNameWhitespace;
     }
     else
     {
@@ -461,7 +466,7 @@ void HTTPRequest::ReadHTTPHeaderNameContinue(const char **data, size_t &length)
     length -= i;
     *data += i;
 }
-void HTTPRequest::ConsumeHTTPHeaderNameWhitespace(const char **data, size_t &length)
+void HTTPRequestBuilder::ConsumeHTTPHeaderNameWhitespace(const char **data, size_t &length)
 {
     while (length && isspace(**data))
     {
@@ -473,10 +478,10 @@ void HTTPRequest::ConsumeHTTPHeaderNameWhitespace(const char **data, size_t &len
         (*data)++;
     }
     if (length)
-        readState = &HTTPRequest::ReadHTTPHeaderValue;
+        readState = &HTTPRequestBuilder::ReadHTTPHeaderValue;
 }
 
-void HTTPRequest::ReadHTTPHeaderValue(const char **data, size_t &length)
+void HTTPRequestBuilder::ReadHTTPHeaderValue(const char **data, size_t &length)
 {
     size_t i = 0;
     for (i = 0; i < length && (*data)[i] != '\r' && (*data)[i] != '\n'; ++i)
@@ -497,12 +502,12 @@ void HTTPRequest::ReadHTTPHeaderValue(const char **data, size_t &length)
     {
         (*data)++;
         length--;
-        readState = &HTTPRequest::ReadHTTPHeaderName;
+        readState = &HTTPRequestBuilder::ReadHTTPHeaderName;
     }
 
 }
 
-void HTTPRequest::ReadHTTPRequestData(const char **data, size_t &length)
+void HTTPRequestBuilder::ReadHTTPRequestBuilderData(const char **data, size_t &length)
 {
     // Should forward this data to the handler for this request.
     // Should also keep track of bytes sent against header info for multipart
@@ -511,12 +516,12 @@ void HTTPRequest::ReadHTTPRequestData(const char **data, size_t &length)
 }
 
 
-void HTTPRequest::ReadData(const char *data, size_t length)
+void HTTPRequestBuilder::ReadData(const char *data, size_t length)
 {
     while (length > 0)
     { 
         size_t oldLength(length);
-        void (HTTPRequest::*oldReadState)(const char **data, size_t &length) (readState);
+        void (HTTPRequestBuilder::*oldReadState)(const char **data, size_t &length) (readState);
         const char *oldData(data);
     
         ((this)->*(readState))(&data, length);
@@ -528,34 +533,36 @@ void HTTPRequest::ReadData(const char *data, size_t length)
 }
 
 
-void HTTPRequest::EmitNameValue(std::string name, const std::string &value)
+void HTTPRequestBuilder::EmitNameValue(std::string name, const std::string &value)
 {
     std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-    headers[name] = value;
+    request->headers[name] = value;
 }
 
-void HTTPRequest::ResetReadState()
+void HTTPRequestBuilder::ResetReadState()
 {
-    method.clear();
-    path.clear();
-    protocol.clear();
-    headerName.clear();
-    headerValue.clear();
-
-    readState = &HTTPRequest::ConsumeLeadingWhitespace;
-    
+    readState = &HTTPRequestBuilder::ConsumeLeadingWhitespace;
+    request = HTTPRequestPtr(new HTTPRequest); 
+   
 }
 
-HTTPRequest::HTTPRequest() 
+HTTPRequestBuilder::HTTPRequestBuilder() 
     :
+    BaseObj(BASEOBJINIT(HTTPRequestBuilder)),
+    request(),
+    readState()
+{
+    ResetReadState();
+}
+
+HTTPRequest::HTTPRequest() :
     BaseObj(BASEOBJINIT(HTTPRequest)),
-    readState(),
     method(),
     path(),
     protocol()
 {
-    ResetReadState();
 }
+
               
 
 
