@@ -24,12 +24,14 @@ const char *testDates[] =
     NULL
 };
 
-TEST(TimesConvertToThemself,TimesConvertBackToThemselves)
+//TEST(TimesConvertToThemself,TimesConvertBackToThemselves)
+int main(int, char**)
 {
     for (int i = 0; testDates[i]; ++i)
     {
         time_t t(TextDateToTime(testDates[i]));
         string ts(TimeToTextDate(t));
-        EXPECT_EQ(ts,string(testDates[i]));
+        cout << "Encoded '" << testDates[i] << "' and got '" << ts << "'" << endl;
+//        EXPECT_EQ(ts,string(testDates[i]));
     }
 }
