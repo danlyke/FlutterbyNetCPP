@@ -12,25 +12,21 @@ const char requestText[] =
     "  all the way to two lines\r\n"
     "\r\n";
 
-// TEST(HeaderTest,ParseRequest)
-int main(int, char**)
+TEST(HeaderTest,ParseRequest)
+//int main(int, char**)
 {
     try
     {
         HTTPRequestBuilderPtr request(new HTTPRequestBuilder);
         request->ReadData(requestText,sizeof(requestText)-1);
-//        EXPECT_EQ(request->method, string("GET"));
-//        EXPECT_EQ(request->path, string("/"));
-//        EXPECT_EQ(request->protocol ,string("HTTP/1.1"));
+        EXPECT_EQ(request->request->method, string("GET"));
+        EXPECT_EQ(request->request->path, string("/"));
+        EXPECT_EQ(request->request->protocol ,string("HTTP/1.1"));
     }
     catch(  FbyBaseExceptionPtr e)
     {
-        cout << "<b><i>Error: ";
-        cout << e->file << ":" << e->line << " " << e->Message;
-        cout << "</i></b><br />\n";
-        return 1;
+        cerr << e->file << ":" << e->line << " " << e->Message << endl;
     }
-    return 0;
 
     try
     {
@@ -41,16 +37,13 @@ int main(int, char**)
             request->ReadData(s,1);
             ++s;
         }
-        cout << "Method: " << request->request->method << endl;
-        cout << "Path: " << request->request->path << endl;
-        cout << "Protocol: " << request->request->protocol << endl;
+        EXPECT_EQ(request->request->method, string("GET"));
+        EXPECT_EQ(request->request->path, string("/"));
+        EXPECT_EQ(request->request->protocol ,string("HTTP/1.1"));
     }
     catch(  FbyBaseExceptionPtr e)
     {
-        cout << "<b><i>Error: ";
-        cout << e->file << ":" << e->line << " " << e->Message;
-        cout << "</i></b><br />\n";
-        return 1;
+        cerr << e->file << ":" << e->line << " " << e->Message << endl;
     }
 
     try
@@ -65,20 +58,13 @@ int main(int, char**)
             request->ReadData(s,1);
             ++s;
         }
-        cout << "Method: " << request->request->method << endl;
-        cout << "Path: " << request->request->path << endl;
-        cout << "Protocol: " << request->request->protocol << endl;
-      
-//        EXPECT_EQ(request->request->method, string("GET"));
-//        EXPECT_EQ(request->request->path, string("/"));
-//        EXPECT_EQ(request->request->protocol, string("HTTP/1.1"));
+        EXPECT_EQ(request->request->method, string("GET"));
+        EXPECT_EQ(request->request->path, string("/"));
+        EXPECT_EQ(request->request->protocol ,string("HTTP/1.1"));
     }
     catch(  FbyBaseExceptionPtr e)
-    {
-        cout << "<b><i>Error: ";
-        cout << e->file << ":" << e->line << " " << e->Message;
-        cout << "</i></b><br />\n";
-        return 1;
+    { 
+        cerr << e->file << ":" << e->line << " " << e->Message << endl;
     }
     
 }

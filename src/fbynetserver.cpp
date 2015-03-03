@@ -153,6 +153,193 @@ ServerPtr Net::createServer(CreateServerFunction f)
     return server;
 };
 
+HTTPResponse::HTTPResponse(SocketPtr socket) :
+    ::FbyHelpers::BaseObj(BASEOBJINIT(HTTPResponse)),
+    socket(socket),
+    wroteHeader(false)
+{
+}
+  
+struct HTTPResultCodes {
+    int resultCode;
+    const char *resultText;
+};
+
+const char *content_type = "Content-Type";
+const char *crlf = "\r\n";
+const char *colonspace = ": ";
+const char *textslashhtml = "text/html";
+
+
+static HTTPResultCodes resultCodes[] =
+{
+    { 100, "Continue" },
+    { 101, "Switching Protocols" },
+    { 102, "Processing" }, //  (WebDAV; RFC 2518)
+    { 200, "OK" },
+    { 201, "Created" },
+    { 202, "Accepted" },
+    { 203, "Non-Authoritative Information" }, //  (since HTTP/1.1)
+    { 204, "No Content" },
+    { 205, "Reset Content" },
+    { 206, "Partial Content" },
+    { 207, "Multi-Status" }, //  (WebDAV; RFC 4918)
+    { 208, "Already Reported" }, //  (WebDAV; RFC 5842)
+    { 226, "IM Used" }, //  (RFC 3229)
+    { 300, "Multiple Choices" },
+    { 301, "Moved Permanently" },
+    { 302, "Found" },
+    { 303, "See Other" }, //  (since HTTP/1.1)
+    { 304, "Not Modified" },
+    { 305, "Use Proxy" }, //  (since HTTP/1.1)
+    { 306, "Switch Proxy" },
+    { 307, "Temporary Redirect" }, //  (since HTTP/1.1)
+    { 308, "Permanent Redirect" }, //  (Experimental RFC; RFC 7238)
+    { 400, "Bad Request" },
+    { 401, "Unauthorized" },
+    { 402, "Payment Required" },
+    { 403, "Forbidden" },
+    { 404, "Not Found" },
+    { 405, "Method Not Allowed" },
+    { 406, "Not Acceptable" },
+    { 407, "Proxy Authentication Required" },
+    { 408, "Request Timeout" },
+    { 409, "Conflict" },
+    { 410, "Gone" },
+    { 411, "Length Required" },
+    { 412, "Precondition Failed" },
+    { 413, "Request Entity Too Large" },
+    { 414, "Request-URI Too Long" },
+    { 415, "Unsupported Media Type" },
+    { 416, "Requested Range Not Satisfiable" },
+    { 417, "Expectation Failed" },
+    { 418, "I'm a teapot" }, //  (RFC 2324)
+    { 419, "Authentication Timeout" }, //  (not in RFC 2616)
+    { 420, "Method Failure" }, //  (Spring Framework)
+    { 420, "Enhance Your Calm" }, //  (Twitter)
+    { 422, "Unprocessable Entity" }, //  (WebDAV; RFC 4918)
+    { 423, "Locked" }, //  (WebDAV; RFC 4918)
+    { 424, "Failed Dependency" }, //  (WebDAV; RFC 4918)
+    { 426, "Upgrade Required" },
+    { 428, "Precondition Required" }, //  (RFC 6585)
+    { 429, "Too Many Requests" }, //  (RFC 6585)
+    { 431, "Request Header Fields Too Large" }, //  (RFC 6585)
+    { 440, "Login Timeout" }, //  (Microsoft)
+    { 444, "No Response" }, //  (Nginx)
+    { 449, "Retry With" }, //  (Microsoft)
+    { 450, "Blocked by Windows Parental Controls" }, //  (Microsoft)
+    { 451, "Unavailable For Legal Reasons" }, //  (Internet draft)
+    { 452, "Conference Not Found" },
+    { 453, "Not Enough Bandwidth" },
+    { 454, "Session Not Found" },
+    { 455, "Method Not Valid in This State" },
+    { 456, "Header Field Not Valid for Resource" },
+    { 457, "Invalid Range" },
+    { 458, "Parameter Is Read-Only" },
+    { 459, "Aggregate operation not allowed" },
+    { 460, "Only aggregate operation allowed" },
+    { 461, "Unsupported transport" },
+    { 462, "Destination unreachable" },
+    { 463, "Key management Failure" },
+    { 494, "Request Header Too Large" }, //  (Nginx)
+    { 495, "Cert Error" }, //  (Nginx)
+    { 496, "No Cert" }, //  (Nginx)
+    { 497, "HTTP to HTTPS" }, //  (Nginx)
+    { 498, "Token expired/invalid" }, //  (Esri)
+    { 499, "Client Closed Request" }, //  (Nginx)
+    { 499, "Token required" }, //  (Esri)
+    { 500, "Internal Server Error" },
+    { 501, "Not Implemented" },
+    { 502, "Bad Gateway" },
+    { 503, "Service Unavailable" },
+    { 504, "Gateway Timeout" },
+    { 505, "HTTP Version Not Supported" },
+    { 506, "Variant Also Negotiates" }, //  (RFC 2295)
+    { 507, "Insufficient Storage" }, //  (WebDAV; RFC 4918)
+    { 508, "Loop Detected" }, //  (WebDAV; RFC 5842)
+    { 509, "Bandwidth Limit Exceeded[29]" }, //  (Apache bw/limited extension)
+    { 510, "Not Extended" }, //  (RFC 2774)
+    { 511, "Network Authentication Required" }, //  (RFC 6585)
+    { 551, "Option not supported" },
+    { 598, "Network read timeout error" }, //  (Unknown)
+    { 599, "Network connect timeout error" }, //  (Unknown)
+};
+
+static void WriteResultCode(SocketPtr socket, int resultCode)
+{
+    char achResultCode[16] = "";
+    int len = snprintf(achResultCode, sizeof(achResultCode), "%d", resultCode);
+
+    socket->write(achResultCode, len);
+    size_t i;
+    for (i = 0; i < (sizeof(resultCodes) / sizeof(*resultCodes)); ++i)
+    {
+        if (resultCodes[i].resultCode == resultCode)
+            break;
+    }
+    if (i < (sizeof(resultCodes) / sizeof(*resultCodes)))
+    {
+        socket->write(" ");
+        socket->write(resultCodes[i].resultText);
+    }
+    else
+    {
+        socket->write(" Unknown Status Code");
+    }
+}
+
+void WriteContentTypeTextHTML(SocketPtr socket)
+{
+    socket->write(crlf);
+    socket->write(content_type);
+    socket->write(colonspace);
+    socket->write(textslashhtml);
+}
+
+void WriteTwoNewLines(SocketPtr socket)
+{
+    socket->write(crlf);
+    socket->write(crlf);
+}
+
+void HTTPResponse::writeHead( int resultCode,
+           const std::map<std::string,std::string> &headers)
+{
+    WriteResultCode(socket, resultCode);
+    bool wroteContentType(false);
+    for (auto header = headers.begin(); header != headers.end(); ++header)
+    {
+        if (header->first == content_type)
+            wroteContentType = true;
+        socket->write(crlf);
+      
+        socket->write(header->first);
+        socket->write(": ");
+        socket->write(header->second);
+    }
+    if (!wroteContentType)
+    {
+        WriteContentTypeTextHTML(socket);
+    }
+    WriteTwoNewLines(socket);
+}
+
+void HTTPResponse::writeHead( int resultCode)
+{
+    writeHead(resultCode, "text/html");
+}
+
+void HTTPResponse::writeHead( int resultCode, const char *)
+{
+    WriteResultCode(socket, resultCode);
+    WriteContentTypeTextHTML(socket);
+    WriteTwoNewLines(socket);
+}
+
+void HTTPResponse::end(const char *s)
+{
+    write(s);
+}
 
 void
 Net::loop()
@@ -315,6 +502,7 @@ static bool AddStringUntilWhitespace(std::string &str, const char **data, size_t
 
     return nextState;
 }
+
 void HTTPRequestBuilder::ConsumeLeadingWhitespace(const char **data, size_t &length)
 {
     while (length && isspace(**data))

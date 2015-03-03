@@ -89,9 +89,24 @@ public:
 };
 
 
-FBYCLASS(HTTPResponse) : public Socket
+FBYCLASS(HTTPResponse) : public ::FbyHelpers::BaseObj
 {
+    FBYUNCOPYABLE(HTTPResponse);
+private:
+    SocketPtr socket;
+    bool wroteHeader;
+
 public:
+    HTTPResponse(SocketPtr);
+    void writeHead( int resultCode,
+               const std::map<std::string,std::string> &);
+    void writeHead( int resultCode);
+    void writeHead( int resultCode, const char *);
+
+    bool write(const char *data, size_t length) { return socket->write(data,length);}
+    bool write(const std::string &s) { return socket->write(s);}
+    bool write(const char *data) { return socket->write(data);}
+    void end(const char *);
 };
 
 FBYCLASS(HTTPRoute) : public ::FbyHelpers::BaseObj

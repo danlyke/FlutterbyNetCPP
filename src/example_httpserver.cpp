@@ -8,15 +8,13 @@ int main(int argc, char **argv)
 
     net->createServer([](SocketPtr socket)
                      {
+                         HTTPRequestBuilderPtr requestBuilderPtr(new HTTPRequestBuilder);
+                         HTTPResponsePtr requestBuilderPtr(new HTTPResponse(socket));
                          
                          socket->onData(
-                             [&socket](const char *data, int length)
+                             [&socket &requestBuilderPtr](const char *data, int length)
                              {
-                                 string s("Got ");
-                                 s += string(data, length);
-                                 s += "\n";
-                                 cout << s;
-                                 socket->write(s);
+                                 requestBuilder->ReadData(data, length);
                              });
                      })->listen(5000);
     net->loop();
