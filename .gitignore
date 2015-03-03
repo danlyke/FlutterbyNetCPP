@@ -9,3 +9,7 @@ obj/
 temp/
 var/
 sampledata/
+src/CMakeCache.txt
+src/CMakeFiles/
+src/Makefile
+src/cmake_install.cmake
