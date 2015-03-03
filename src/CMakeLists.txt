@@ -35,7 +35,7 @@ target_link_libraries(fby LINK_PUBLIC sqlite3 pq boost_filesystem boost_system g
 #FIND_LIBRARY(GTEST_LIBRARY gtest /home/danlyke/lib)
 #TARGET_LINK_LIBRARIES(testOVAS ${GTEST_LIBRARY})
 #LINK_DIRECTORIES( ${LINK_DIRECTORIES} /home/danyke/lib)
-include_directories(/home/danlyke/include)
+include_directories($ENV{HOME}/include)
 
 
 add_custom_command( OUTPUT ../var/fby.sqlite3
@@ -55,61 +55,61 @@ add_executable(test_image_name_decomposition test_image_name_decomposition.cpp)
 target_link_libraries (test_image_name_decomposition LINK_PUBLIC fby boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
 
 add_executable(test_lib test_lib.cpp)
-target_link_libraries (test_lib LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (test_lib LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable( test_subst  test_subst.cpp)
-target_link_libraries ( test_subst LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries ( test_subst LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(test_zstring test_zstring.cpp)
-target_link_libraries (test_zstring LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (test_zstring LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(test_removecrs test_removecrs.cpp)
-target_link_libraries (test_removecrs LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (test_removecrs LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(test_wikistring test_wikistring.cpp)
-target_link_libraries (test_wikistring LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (test_wikistring LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(example_file example_file.cpp)
-target_link_libraries (example_file LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (example_file LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(example_lambda example_lambda.cpp)
-target_link_libraries (example_lambda LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (example_lambda LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(example_flex example_flex.cpp)
-target_link_libraries (example_flex LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (example_flex LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(example_tester example_tester.cpp)
-target_link_libraries (example_tester LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (example_tester LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(example_reset example_reset.cpp)
-target_link_libraries (example_reset LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (example_reset LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(example_regex example_regex.cpp)
-target_link_libraries (example_regex LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (example_regex LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(example_gdbm example_gdbm.cpp)
-target_link_libraries (example_gdbm LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (example_gdbm LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable( example_readstdout  example_readstdout.cpp)
-target_link_libraries ( example_readstdout LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries ( example_readstdout LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(example_sqlite example_sqlite.cpp)
-target_link_libraries (example_sqlite LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (example_sqlite LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable( example_strftime  example_strftime.cpp)
-target_link_libraries ( example_strftime LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries ( example_strftime LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(example_findimageinfo example_findimageinfo.cpp)
-target_link_libraries (example_findimageinfo LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (example_findimageinfo LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable( example_iter  example_iter.cpp)
-target_link_libraries ( example_iter LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries ( example_iter LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(example_boost_options example_boost_options.cpp)
-target_link_libraries (example_boost_options LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (example_boost_options LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(example_netserver example_netserver.cpp)
-target_link_libraries (example_netserver LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (example_netserver LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 
 
@@ -132,50 +132,50 @@ add_library( fbywiki sqldefinitions.cpp wiki.cpp wikidb.cpp wikiobjects.cpp wiki
 add_executable(fby-bin fby.cpp)
 set_target_properties(fby-bin
   PROPERTIES OUTPUT_NAME fby)
-target_link_libraries (fby-bin LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (fby-bin LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(fby_test fby_test.cpp)
-target_link_libraries (fby_test LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (fby_test LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(test_fbydb test_fbydb.cpp)
-target_link_libraries (test_fbydb LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (test_fbydb LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(scaninputwikifiles scaninputwikifiles.cpp)
-target_link_libraries (scaninputwikifiles LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (scaninputwikifiles LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(scanimages scanimages.cpp)
-target_link_libraries (scanimages LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (scanimages LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(parsewikifiletostaging parsewikifiletostaging.cpp)
-target_link_libraries (parsewikifiletostaging LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (parsewikifiletostaging LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(test_regexparse test_regexparse.cpp)
-target_link_libraries (test_regexparse LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (test_regexparse LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(parsewikifilesforlinks parsewikifilesforlinks.cpp)
-target_link_libraries (parsewikifilesforlinks LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (parsewikifilesforlinks LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(scanwikifilesforlinks scanwikifilesforlinks.cpp)
-target_link_libraries (scanwikifilesforlinks LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (scanwikifilesforlinks LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(rebuilddirtyfiles rebuilddirtyfiles.cpp)
-target_link_libraries (rebuilddirtyfiles LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (rebuilddirtyfiles LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(getstatus getstatus.cgi.cpp)
-target_link_libraries (getstatus LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (getstatus LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(setstatus setstatus.cgi.cpp)
-target_link_libraries (setstatus LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (setstatus LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(test_fbyregex test_fbyregex.cpp)
-target_link_libraries (test_fbyregex LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (test_fbyregex LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(test_microformats test_microformats.cpp)
-target_link_libraries (test_microformats LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (test_microformats LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(test_parsehtml test_parsehtml.cpp)
-target_link_libraries (test_parsehtml LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (test_parsehtml LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(test_nethttpheaders test_nethttpheaders.cpp)
-target_link_libraries (test_nethttpheaders LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+target_link_libraries (test_nethttpheaders LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
