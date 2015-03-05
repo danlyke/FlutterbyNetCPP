@@ -164,7 +164,7 @@ public:
     std::string headerName;
     std::string headerValue;
     void ReadData(const char *data, size_t length);
-    HTTPRequestBuilder();
+    HTTPRequestBuilder(RespondToHTTPRequestFunction);
 };
 
 FBYCLASSPTR(HTTPServer);
