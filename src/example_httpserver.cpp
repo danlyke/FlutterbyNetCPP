@@ -10,7 +10,7 @@ int main(int argc, char **argv)
                      {
                          HTTPRequestBuilderPtr requestBuilder
                              (new HTTPRequestBuilder
-                              (
+                              (socket,
                                   [](HTTPRequestPtr request, HTTPResponsePtr response)
                                   {
                                       cout << "Request: '" << request->method
@@ -24,7 +24,7 @@ int main(int argc, char **argv)
                                           cout << "   " << v->first << " : " << v->second << endl;
                                       }
                                       response->writeHead(200);
-                                      response->write("<html><head><title>Test</title></head><body><h1>Test</h1></body></html>\n");
+                                      response->end("<html><head><title>Test</title></head><body><h1>Test</h1></body></html>\n");
                                   }
                                   ));
                          

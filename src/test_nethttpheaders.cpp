@@ -15,9 +15,10 @@ const char requestText[] =
 TEST(HeaderTest,ParseRequest)
 //int main(int, char**)
 {
+    SocketPtr socket;
     try
     {
-        HTTPRequestBuilderPtr request(new HTTPRequestBuilder(
+        HTTPRequestBuilderPtr request(new HTTPRequestBuilder(socket,
                                           [](HTTPRequestPtr, HTTPResponsePtr){}
                                           ));
         request->ReadData(requestText,sizeof(requestText)-1);
@@ -32,7 +33,7 @@ TEST(HeaderTest,ParseRequest)
 
     try
     {
-        HTTPRequestBuilderPtr request(new HTTPRequestBuilder(
+        HTTPRequestBuilderPtr request(new HTTPRequestBuilder(socket,
                                           [](HTTPRequestPtr, HTTPResponsePtr){}
                                           ));
         const char *s = requestText;
@@ -52,7 +53,7 @@ TEST(HeaderTest,ParseRequest)
 
     try
     {
-        HTTPRequestBuilderPtr request(new HTTPRequestBuilder(
+        HTTPRequestBuilderPtr request(new HTTPRequestBuilder(socket,
                                           [](HTTPRequestPtr, HTTPResponsePtr){}
                                           ));
         const char *s = requestText;

@@ -339,6 +339,7 @@ void HTTPResponse::writeHead( int resultCode, const char *)
 void HTTPResponse::end(const char *s)
 {
     write(s);
+    
 }
 
 void
@@ -465,6 +466,12 @@ Net::loop()
 
         for (ssize_t i = 0; i < (ssize_t)(sockets.size()); ++i)
         {
+            if (sockets[i]->doneWithWrites
+                && !sockets[i]->emitDrain)
+            {
+                close(sockets[i]->fd);
+                sockets[i]->fd = -1;
+            }
             if (sockets[i]->fd < 0)
             {
                 sockets.erase(sockets.begin() + i);
@@ -588,6 +595,8 @@ void HTTPRequestBuilder::ConsumeHTTPProtocolNewline(const char **data, size_t &l
 
 void HTTPRequestBuilder::GenerateHTTPResponder()
 {
+    HTTPResponsePtr response(new HTTPResponse(socket));
+    on_request(request, response);
 #if 0
     for (auto route = routes.begin();
          route != routes.end();
@@ -734,10 +743,12 @@ void HTTPRequestBuilder::ResetReadState()
    
 }
 
-HTTPRequestBuilder::HTTPRequestBuilder(RespondToHTTPRequestFunction on_request) 
+HTTPRequestBuilder::HTTPRequestBuilder(SocketPtr socket,
+                                       RespondToHTTPRequestFunction on_request) 
     :
     BaseObj(BASEOBJINIT(HTTPRequestBuilder)),
     on_request(on_request),
+    socket(socket),
     readState(),
     request()
 {

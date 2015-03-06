@@ -36,6 +36,7 @@ private:
     Net * net;
     std::string queuedWrite;
     bool emitDrain;
+    bool doneWithWrites;
     
     void SetSocketServerAndFile(Net* net, int fd);
 public:
@@ -54,6 +55,22 @@ public:
     bool write(const char *data)
     {
         return write(data, strlen(data));
+    }
+
+    bool end(const char *data, size_t length)
+    {
+        doneWithWrites = true;
+        return write(data, length);
+    }
+    bool end(const std::string &s)
+    {
+        doneWithWrites = true;
+        return write(s);
+    }
+    bool end(const char *data)
+    {
+        doneWithWrites = true;
+        return write(data);
     }
 };
 
@@ -156,7 +173,7 @@ protected:
     virtual void EmitNameValue(std::string name, const std::string &value);
    
     RespondToHTTPRequestFunction on_request;
-
+    SocketPtr socket;
 public:
     void (HTTPRequestBuilder::*readState)(const char **data, size_t &length);
 
@@ -165,7 +182,7 @@ public:
     std::string headerName;
     std::string headerValue;
     void ReadData(const char *data, size_t length);
-    HTTPRequestBuilder(RespondToHTTPRequestFunction);
+    HTTPRequestBuilder(SocketPtr socket, RespondToHTTPRequestFunction);
 };
 
 FBYCLASSPTR(HTTPServer);
@@ -190,7 +207,8 @@ inline Socket::Socket()
               on_data(), 
               on_drain(),
               net(),
-              queuedWrite(), emitDrain(false)
+              queuedWrite(), emitDrain(false),
+              doneWithWrites(false)
 {
 }
 
