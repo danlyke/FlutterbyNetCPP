@@ -100,7 +100,7 @@ double wrapper_stod(const string &in)
 long wrapper_stold(const string &in)
 {
     if (in.empty())
-        return FLT_MAX;
+        return LONG_MAX;
     return stold(in);
 }
 
