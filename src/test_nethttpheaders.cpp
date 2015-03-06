@@ -17,7 +17,9 @@ TEST(HeaderTest,ParseRequest)
 {
     try
     {
-        HTTPRequestBuilderPtr request(new HTTPRequestBuilder);
+        HTTPRequestBuilderPtr request(new HTTPRequestBuilder(
+                                          [](HTTPRequestPtr, HTTPResponsePtr){}
+                                          ));
         request->ReadData(requestText,sizeof(requestText)-1);
         EXPECT_EQ(request->request->method, string("GET"));
         EXPECT_EQ(request->request->path, string("/"));
@@ -30,7 +32,9 @@ TEST(HeaderTest,ParseRequest)
 
     try
     {
-        HTTPRequestBuilderPtr request(new HTTPRequestBuilder);
+        HTTPRequestBuilderPtr request(new HTTPRequestBuilder(
+                                          [](HTTPRequestPtr, HTTPResponsePtr){}
+                                          ));
         const char *s = requestText;
         while (*s)
         {
@@ -48,7 +52,9 @@ TEST(HeaderTest,ParseRequest)
 
     try
     {
-        HTTPRequestBuilderPtr request(new HTTPRequestBuilder);
+        HTTPRequestBuilderPtr request(new HTTPRequestBuilder(
+                                          [](HTTPRequestPtr, HTTPResponsePtr){}
+                                          ));
         const char *s = requestText;
         request->ReadData(s,4);
         s += 4;

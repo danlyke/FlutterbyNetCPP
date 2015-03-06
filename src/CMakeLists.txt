@@ -111,6 +111,8 @@ target_link_libraries (example_boost_options LINK_PUBLIC fby sqlite3 pq boost_fi
 add_executable(example_netserver example_netserver.cpp)
 target_link_libraries (example_netserver LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
+add_executable(example_httpserver example_httpserver.cpp)
+target_link_libraries (example_httpserver LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 
 

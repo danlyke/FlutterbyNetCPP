@@ -734,11 +734,12 @@ void HTTPRequestBuilder::ResetReadState()
    
 }
 
-HTTPRequestBuilder::HTTPRequestBuilder() 
+HTTPRequestBuilder::HTTPRequestBuilder(RespondToHTTPRequestFunction on_request) 
     :
     BaseObj(BASEOBJINIT(HTTPRequestBuilder)),
-    request(),
-    readState()
+    on_request(on_request),
+    readState(),
+    request()
 {
     ResetReadState();
 }

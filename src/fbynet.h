@@ -151,10 +151,11 @@ private:
 
     void ResetReadState();
 
-
     void GenerateHTTPResponder();
 protected:
     virtual void EmitNameValue(std::string name, const std::string &value);
+   
+    RespondToHTTPRequestFunction on_request;
 
 public:
     void (HTTPRequestBuilder::*readState)(const char **data, size_t &length);
