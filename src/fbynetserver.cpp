@@ -122,7 +122,7 @@ ServerPtr Server::listen(int socket_num)
 
 bool Socket::write(char const *data, size_t size)
 {
-    fprintf(stderr, "Writing %*s to %d\n", (int)size, data, fd);
+    fprintf(stderr, "Writing Socket %lx %*s to %d\n", (unsigned long)(this), (int)size, data, fd);
     bool wroteEverything(false);
     ssize_t bytes_written = ::write(fd, data, size);
 
@@ -169,6 +169,24 @@ const char *content_type = "Content-Type";
 const char *crlf = "\r\n";
 const char *colonspace = ": ";
 const char *textslashhtml = "text/html";
+
+// // HTTP/1.1 302 Found
+// Date: Fri, 06 Mar 2015 21:48:41 GMT
+//     Server: Apache/2.4.10 (Ubuntu)
+//     Location: http://www.flutterby.net/cgi-bin/tinylink.pl?r=index.html
+//     Content-Length: 320
+//     Content-Type: text/html; charset=iso-8859-1
+// 
+//                                  <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+// <html><head>
+//                                  <title>302 Found</title>
+// </head><body>
+//                                  <h1>Found</h1>
+//                                  <p>The document has moved <a href="http://www.flutterby.net/cgi-bin/tinylink.pl?r=index.html">here</a>.</p>
+// <hr>
+//                                  <address>Apache/2.4.10 (Ubuntu) Server at flutterby.net Port 80</address>
+// </body></html>
+
 
 
 static HTTPResultCodes resultCodes[] =
@@ -267,8 +285,8 @@ static HTTPResultCodes resultCodes[] =
 
 static void WriteResultCode(SocketPtr socket, int resultCode)
 {
-    char achResultCode[16] = "";
-    int len = snprintf(achResultCode, sizeof(achResultCode), "%d", resultCode);
+    char achResultCode[32] = "";
+    int len = snprintf(achResultCode, sizeof(achResultCode), "HTTP/1.1 %d", resultCode);
 
     socket->write(achResultCode, len);
     size_t i;
@@ -331,15 +349,29 @@ void HTTPResponse::writeHead( int resultCode)
 
 void HTTPResponse::writeHead( int resultCode, const char *)
 {
+#if 0
+    socket->write("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n");
+#else
     WriteResultCode(socket, resultCode);
     WriteContentTypeTextHTML(socket);
     WriteTwoNewLines(socket);
+#endif
 }
 
-void HTTPResponse::end(const char *s)
+
+bool HTTPResponse::end(const char *data, size_t length)
 {
-    write(s);
-    
+    return socket->end(data,length);
+}
+
+bool HTTPResponse::end(const std::string &s)
+{
+    return socket->end(s);
+}
+
+bool HTTPResponse::end(const char *s)
+{
+    return socket->end(s);
 }
 
 void
@@ -428,6 +460,7 @@ Net::loop()
                     buffer[len]  = 0;
                     fprintf(stderr, "Socket %lx Read %d bytes from %d '%*s'\n", (unsigned long)(&**socket), (int)len, (*socket)->fd, (int)len, buffer);
                     (*socket)->on_data(buffer, len);
+                    std::cerr << "Sent bytes to " << (*socket)->fd << " done " << (*socket)->doneWithWrites << std::endl;
                 }
                 else
                 {
@@ -466,6 +499,8 @@ Net::loop()
 
         for (ssize_t i = 0; i < (ssize_t)(sockets.size()); ++i)
         {
+            SocketPtr socket = sockets[i];
+            fprintf(stderr, "Checking socket %lx status %d\n", (unsigned long)(&*socket), socket->doneWithWrites);
             if (sockets[i]->doneWithWrites
                 && !sockets[i]->emitDrain)
             {

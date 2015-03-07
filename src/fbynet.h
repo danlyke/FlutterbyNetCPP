@@ -46,6 +46,11 @@ public:
         this->on_data = on_data;
     }
 
+    void onDrain(OnDrainFunction on_drain)
+    {
+        this->on_drain = on_drain;
+    }
+
 
     bool write(const char *data, size_t length);
     bool write(const std::string &s)
@@ -59,16 +64,19 @@ public:
 
     bool end(const char *data, size_t length)
     {
+        std::cout << "Writing end " << (unsigned long)(this) << std::endl;
         doneWithWrites = true;
         return write(data, length);
     }
     bool end(const std::string &s)
     {
+        std::cout << "Writing end " << (unsigned long)(this) << std::endl;
         doneWithWrites = true;
         return write(s);
     }
     bool end(const char *data)
     {
+        std::cout << "Writing end " << (unsigned long)(this) << std::endl;
         doneWithWrites = true;
         return write(data);
     }
@@ -123,7 +131,13 @@ public:
     bool write(const char *data, size_t length) { return socket->write(data,length);}
     bool write(const std::string &s) { return socket->write(s);}
     bool write(const char *data) { return socket->write(data);}
-    void end(const char *);
+    bool end(const char *);
+    bool end(const char *data, size_t length);
+    bool end(const std::string &s);
+    void onDrain(OnDrainFunction on_drain)
+    {
+        socket->onDrain(on_drain);
+    }
 };
 
 FBYCLASS(HTTPRoute) : public ::FbyHelpers::BaseObj
