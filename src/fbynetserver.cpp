@@ -17,8 +17,8 @@
 #include <netdb.h>
 #include <ctype.h>
 
-
 using namespace FbyHelpers;
+using namespace std;
 
 int termsig = 0;
 int got_sighup = 0;
@@ -170,22 +170,6 @@ const char *crlf = "\r\n";
 const char *colonspace = ": ";
 const char *textslashhtml = "text/html";
 
-// // HTTP/1.1 302 Found
-// Date: Fri, 06 Mar 2015 21:48:41 GMT
-//     Server: Apache/2.4.10 (Ubuntu)
-//     Location: http://www.flutterby.net/cgi-bin/tinylink.pl?r=index.html
-//     Content-Length: 320
-//     Content-Type: text/html; charset=iso-8859-1
-// 
-//                                  <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
-// <html><head>
-//                                  <title>302 Found</title>
-// </head><body>
-//                                  <h1>Found</h1>
-//                                  <p>The document has moved <a href="http://www.flutterby.net/cgi-bin/tinylink.pl?r=index.html">here</a>.</p>
-// <hr>
-//                                  <address>Apache/2.4.10 (Ubuntu) Server at flutterby.net Port 80</address>
-// </body></html>
 
 
 
@@ -359,6 +343,65 @@ void HTTPResponse::writeHead( int resultCode, const char *)
 }
 
 
+void HTTPResponse::respondHTML(int resultCode, std::map<std::string, std::string> attrs,
+                               const std::string &title, const std::string &body)
+{
+    attrs["Content-Type"] = "text/html; charset=utf-8";
+    
+    std::string html("<html><head><title>");
+    html += title;
+    html += "</title></head>\n<body><h1>";
+    html += title;
+    html += "</h1><p>" + body + "</p></body></html>\n";
+    
+    attrs["Content-Length"] = std::to_string(html.length());
+    writeHead(resultCode, attrs);
+    end(html);
+}
+
+void HTTPResponse::respondHTML(int resultCode, 
+                               const std::string &title, const std::string &body)
+{
+    std::map<std::string, std::string> attrs;
+    respondHTML(resultCode,attrs,title,body);
+}
+
+void HTTPResponse::respondHTML(int resultCode, const std::string &body)
+{
+    std::map<std::string, std::string> attrs;
+
+    std::string title;
+    size_t i;
+    for (i = 0; i < (sizeof(resultCodes) / sizeof(*resultCodes)); ++i)
+    {
+        if (resultCodes[i].resultCode == resultCode)
+            break;
+    }
+    if (i < (sizeof(resultCodes) / sizeof(*resultCodes)))
+    {
+        title = resultCodes[i].resultText;
+    }
+    else
+    {
+        title = to_string(resultCode);
+    }
+
+    respondHTML(resultCode,attrs,title,body);
+}
+
+void HTTPResponse::redirect(const std::string &path)
+{
+    std::map<std::string,std::string> attrs;
+    attrs["Location"] = path;
+    string redirect("The document has moved <a href=\"");
+    redirect += path;
+    redirect += "\">here</a>";
+    respondHTML(302, attrs, "302 Found", redirect);
+        
+               
+}
+
+
 bool HTTPResponse::end(const char *data, size_t length)
 {
     return socket->end(data,length);
@@ -442,8 +485,8 @@ Net::loop()
                     socket->SetSocketServerAndFile(this, fd);
 					fcntl(fd,F_SETFL,O_NONBLOCK);
                     sockets.push_back(socket);
-					fprintf(stderr,"%03d: new request (%d)\n",
-                            (*server)->fd, fd);
+					fprintf(stderr,"%03d: %ld new request (%d)\n",
+                            (*server)->fd, now, fd);
                     (*server)->create_func(socket);
 				}
 			}
@@ -798,6 +841,90 @@ HTTPRequest::HTTPRequest() :
 {
 }
 
+
+
+bool ServeFile(HTTPRequestPtr request, HTTPResponsePtr response)
+{
+    int fd;
+    string path("../t/html");
+    string filename(request->path);
+    if (filename.length() == 0)
+    {
+        response->respondHTML(404,
+                              "Not Found",
+                              "Zero length filename, this ain't right");
+        return true;
+    }
+    if (filename[0] != '/')
+    {
+        filename = "/" + filename;
+    }
+    if (string::npos != filename.find("/."))
+    { 
+        response->respondHTML(404,
+                              "Not Found",
+                              "Gotta /. in your filename, not cool");
+        return true;
+    }
+
+    path += filename;
+
+    struct stat statbuf;
+
+    if (stat(path.c_str(), &statbuf))
+    { 
+        response->respondHTML(404,
+                              "Not Found",
+                              "Error in finding <i>" + path + "</i>");
+    }
+
+    if (S_ISDIR(statbuf.st_mode))
+    {
+        if (path[path.length() - 1] != '/')
+        {
+            response->redirect(filename + '/');
+            return true;
+        }
+        path += "index.html";
+    }
+    cout << "Reading " << path << endl;
+
+    if (0 < (fd = open(path.c_str(), O_RDONLY)))
+    {
+        // Need to do file type stuff here!
+        response->writeHead(200);
+        int buflen = 8192;
+        char *buffer = new char[buflen];
+        int len = read(fd, buffer, buflen);
+        if (len < buflen)
+        {
+            response->end(buffer, len);
+            close(fd);
+            delete[] buffer;
+        }
+        else
+        {
+            response->write(buffer, len);
+            response->onDrain([buflen, buffer, fd, response]()
+                              {
+                                  int len = read(fd, buffer, buflen);
+                                  if (len < buflen)
+                                  {
+                                      response->end(buffer, len);
+                                      close(fd);
+                                      delete[] buffer;
+                                  }
+                                  else
+                                  {
+                                      response->write(buffer, len);
+                                  }
+                              });
+        }
+
+        return true;
+    }
+    return false;
+}
               
 
 

@@ -127,6 +127,12 @@ public:
                const std::map<std::string,std::string> &);
     void writeHead( int resultCode);
     void writeHead( int resultCode, const char *);
+    void redirect(const std::string &path);
+    void respondHTML(int code, std::map<std::string, std::string> attrs,
+                     const std::string &title, const std::string &body);
+    void respondHTML(int code, 
+                     const std::string &title, const std::string &body);
+    void respondHTML(int code, const std::string &body);
 
     bool write(const char *data, size_t length) { return socket->write(data,length);}
     bool write(const std::string &s) { return socket->write(s);}
@@ -240,5 +246,7 @@ inline Server::Server(Net * net, CreateServerFunction create_func)
 {
 }
 
+
+extern bool ServeFile(HTTPRequestPtr request, HTTPResponsePtr response);
 
 #endif /* #ifndef FBYNET_H_INCLUDED */
