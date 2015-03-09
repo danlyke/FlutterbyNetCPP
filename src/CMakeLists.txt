@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(FbyNetCPP)
-add_definitions(-std=c++11 -Wall -Wextra)
+add_definitions(-std=c++11 -Wall -Wextra -Weffc++)
 # -Weffc++
 
 
@@ -181,3 +181,11 @@ target_link_libraries (test_parsehtml LINK_PUBLIC fbywiki fby sqlite3 pq boost_f
 add_executable(test_nethttpheaders test_nethttpheaders.cpp)
 target_link_libraries (test_nethttpheaders LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
+install (TARGETS fby DESTINATION lib)
+install (FILES
+  fby_core_unix_array.h           fbyfileutils.h   fbyparsetree.h    fbytreebuilder.h
+  fby_core_unix.h                 fby.h            fbyregex.h        fbywikistrings.h
+  fby_core_unix_propertyhelper.h  fbyimageutils.h  fbyregexparser.h
+  fbydb.h                         fby_msusing.h    fbystd.h
+  fbyfilefind.h                   fbynet.h         fbystring.h
+  DESTINATION include)
