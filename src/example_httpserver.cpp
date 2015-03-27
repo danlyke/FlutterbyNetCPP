@@ -28,7 +28,7 @@ int main(int argc, char **argv)
                                       {
                                           cout << "   " << v->first << " : " << v->second << endl;
                                       }
-                                      if (!ServeFile(request,response))
+                                      if (!ServeFile("../t/html", request,response))
                                       {
                                           response->writeHead(404);
                                           response->end("<html><head><title>Nope!</title></head><body><h1>Ain't there, dude!</h1></body></html>\n");

@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
+set(CMAKE_INSTALL_PREFIX $ENV{HOME})
 project(FbyNetCPP)
 add_definitions(-std=c++11 -Wall -Wextra -Weffc++)
+
 # -Weffc++
 
 
@@ -114,11 +116,14 @@ target_link_libraries (example_netserver LINK_PUBLIC fby sqlite3 pq boost_filesy
 add_executable(example_httpserver example_httpserver.cpp)
 target_link_libraries (example_httpserver LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
+add_executable(example_irrigationcontrol example_irrigationcontrol.cpp)
+target_link_libraries (example_irrigationcontrol LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
+
 
 
 add_custom_command( OUTPUT sqldefinitions.cpp sqldefinitions.h sqldefinitions.sql
   COMMAND sqlextractor ARGS ${CMAKE_CURRENT_SOURCE_DIR}/wikiobjects.h
-  MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/wikiobjects.h
+  MAIN_DEPENDENCY wikiobjects.h
   DEPENDS sqlextractor )
 
 add_custom_command( OUTPUT openlayerstemplate.cpp openlayerstemplate.h
@@ -171,6 +176,9 @@ target_link_libraries (setstatus LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesy
 
 add_executable(test_fbyregex test_fbyregex.cpp)
 target_link_libraries (test_fbyregex LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
+
+add_executable(test_endswith test_endswith.cpp)
+target_link_libraries (test_endswith LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(test_microformats test_microformats.cpp)
 target_link_libraries (test_microformats LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)

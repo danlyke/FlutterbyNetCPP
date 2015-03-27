@@ -111,3 +111,12 @@ std::string HTMLQuote(const std::string &s)
     }
     return html;
 }
+
+bool endswith(const std::string &s, const std::string &with)
+{
+    if (s.length() >= with.length()) {
+        return (0 == s.compare(s.length() - with.length(), with.length(), with));
+    }
+    return false;
+}
+

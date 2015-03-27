@@ -1,9 +1,10 @@
 #include "fbynet.h"
-
+#include "fbystring.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -165,12 +166,50 @@ struct HTTPResultCodes {
     const char *resultText;
 };
 
-const char *content_type = "Content-Type";
-const char *crlf = "\r\n";
-const char *colonspace = ": ";
-const char *textslashhtml = "text/html";
+const char content_type[] = "Content-Type";
+const char crlf[] = "\r\n";
+const char colonspace[] = ": ";
+const char textslashhtml[] = "text/html";
+const char imageslashjpeg[] = "image/jpeg";
+
+struct MIMETypesByExtension {
+    const char *extension;
+    const char *mimeType;
+};
 
 
+const char defaultMimeType[] = "application/octet-stream";
+
+static MIMETypesByExtension mimeTypesByExtension[] = {
+    { ".htm", 	textslashhtml },
+    { ".html", 	textslashhtml },
+    { ".ico", 	"image/x-icon" },
+    { ".jpeg", 	imageslashjpeg },
+    { ".jpg", 	imageslashjpeg },
+    { ".js", 	"application/x-javascript" },
+    { ".png", 	"image/png" },
+    { ".txt", 	"text/plain" },
+    { ".svg",	"image/svg+xml" },
+    // Needs a Content-Encoding header too...
+    { ".svgz",	"image/svg+xml" },
+    { ".json", "application/json" },
+    { ".css", "text/css" },
+};
+
+const char *MimeTypeForExtension(const string &path)
+{
+    const char *mimeType = defaultMimeType;
+    
+    for (size_t i = 0; i < sizeof(mimeTypesByExtension) / sizeof(*mimeTypesByExtension); ++i)
+    {
+        if (endswith(path, mimeTypesByExtension[i].extension))
+        {
+            mimeType = mimeTypesByExtension[i].mimeType;
+            break;
+        }
+    }
+    return mimeType;
+}
 
 
 static HTTPResultCodes resultCodes[] =
@@ -417,11 +456,13 @@ bool HTTPResponse::end(const char *s)
     return socket->end(s);
 }
 
+
+
 void
 Net::loop()
 {
 	time_t now;
-	struct timeval      tv;
+    struct timeval      previous_time;
 	int                 max_fd;
 	fd_set              read_fds,write_fds;
 
@@ -430,6 +471,8 @@ Net::loop()
             (int)(servers.size()), (int)(sockets.size()));
     termsig = 0;
     catchsignals();
+
+    gettimeofday(&previous_time, NULL);
 
 	for (;(servers.size() || sockets.size()) && !termsig;) 
 	{
@@ -456,14 +499,54 @@ Net::loop()
 
         /* CHECK FOR WRITES HERE! */
 
+        struct timeval current_time;
+        gettimeofday(&current_time, NULL);
+        time_t elapsed_seconds = current_time.tv_sec - previous_time.tv_sec;
+        long elapsed_microseconds =
+            (long)(current_time.tv_usec / 1000) - (long)(previous_time.tv_usec / 1000);
+        elapsed_microseconds += int(elapsed_seconds) * 1000;
+        previous_time = current_time;
 
-		/* go! */
-		tv.tv_sec  = KEEPALIVE_TIME;
-		tv.tv_usec = 0;
+        long next_timer_microseconds(LONG_MAX);
+
+        for (size_t i = 0; i < timers.size(); ++i)
+        {
+            auto timer = timers[i];
+
+            if (timer->next_time <= elapsed_microseconds)
+            {
+                timer->triggered_function();
+                if (timer->recurring)
+                {
+                    timer->next_time += timer->microseconds;
+                }
+                else
+                {
+                    timers.erase(timers.begin() + i);
+                    --i;
+                    continue;
+                }
+            }
+            timer->next_time -= elapsed_microseconds;
+            if (timer->next_time  < next_timer_microseconds)
+            {
+                next_timer_microseconds = timer->next_time;
+            }
+        }
+
+        struct timeval *ptv(NULL), tv;
+
+        if (next_timer_microseconds != LONG_MAX)
+        {
+            ptv = &tv;
+            tv.tv_sec  = next_timer_microseconds / 1000 ;
+            tv.tv_usec = (next_timer_microseconds % 1000) * 1000;
+        }
+
 		if (-1 == select(max_fd+1,
 				 &read_fds,
 				 &write_fds,
-				 NULL,&tv))
+				 NULL,ptv))
 		{
 			continue;
 		}
@@ -828,7 +911,9 @@ HTTPRequestBuilder::HTTPRequestBuilder(SocketPtr socket,
     on_request(on_request),
     socket(socket),
     readState(),
-    request()
+    request(),
+    headerName(),
+    headerValue()
 {
     ResetReadState();
 }
@@ -837,16 +922,17 @@ HTTPRequest::HTTPRequest() :
     BaseObj(BASEOBJINIT(HTTPRequest)),
     method(),
     path(),
-    protocol()
+    protocol(),
+    headers()
 {
 }
 
 
 
-bool ServeFile(HTTPRequestPtr request, HTTPResponsePtr response)
+bool ServeFile(const char * fileRoot, HTTPRequestPtr request, HTTPResponsePtr response)
 {
     int fd;
-    string path("../t/html");
+    string path(fileRoot);
     string filename(request->path);
     if (filename.length() == 0)
     {
@@ -861,8 +947,8 @@ bool ServeFile(HTTPRequestPtr request, HTTPResponsePtr response)
     }
     if (string::npos != filename.find("/."))
     { 
-        response->respondHTML(404,
-                              "Not Found",
+        response->respondHTML(403,
+                              "Wrist Slap",
                               "Gotta /. in your filename, not cool");
         return true;
     }
@@ -892,7 +978,7 @@ bool ServeFile(HTTPRequestPtr request, HTTPResponsePtr response)
     if (0 < (fd = open(path.c_str(), O_RDONLY)))
     {
         // Need to do file type stuff here!
-        response->writeHead(200);
+        response->writeHead(200, MimeTypeForExtension(path));
         int buflen = 8192;
         char *buffer = new char[buflen];
         int len = read(fd, buffer, buflen);

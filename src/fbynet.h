@@ -101,16 +101,132 @@ public:
 };
 
 
+FBYCLASSPTR(IntervalTimeoutObject);
+FBYCLASS(IntervalTimeoutObject) : public ::FbyHelpers::BaseObj
+{
+    friend class Net;
+    FBYUNCOPYABLE(IntervalTimeoutObject);
+private:
+     std::function<void ()> triggered_function;
+     bool stillNeedsEvents;
+     bool recurring;
+     long microseconds;
+     long next_time;
+public:
+IntervalTimeoutObject(std::function<void()> triggered_function,
+                      bool recurring, long microseconds, const char *name, int size)
+    :
+    BaseObj(name,size),
+        triggered_function(triggered_function),
+        stillNeedsEvents(true),
+        recurring(recurring),
+        microseconds(microseconds),
+        next_time(microseconds)
+    {}
+    void unref() { stillNeedsEvents = false; }
+    void ref() { stillNeedsEvents = true; }
+};
+
+FBYCLASSPTR(TimeoutObject);
+FBYCLASS(TimeoutObject) : public IntervalTimeoutObject
+{
+    friend class Net;
+
+public:
+TimeoutObject(std::function<void()> triggered_function,
+              long microseconds) : IntervalTimeoutObject(triggered_function,
+                                                         false, microseconds, BASEOBJINIT(TimeoutObject))
+    {}
+};
+
+FBYCLASSPTR(IntervalObject);
+FBYCLASS(IntervalObject) : public IntervalTimeoutObject
+{
+    friend class Net;
+public:
+IntervalObject(std::function<void()> triggered_function,
+               long microseconds) : IntervalTimeoutObject(triggered_function,
+                                                          true, microseconds, BASEOBJINIT(IntervalObject))
+    {}
+};
+
+FBYCLASSPTR(ImmediateObject);
+FBYCLASS(ImmediateObject) : public IntervalTimeoutObject
+{
+    friend class Net;
+public:
+ImmediateObject(std::function<void()> triggered_function)
+    : IntervalTimeoutObject(triggered_function,
+                            false, 0, BASEOBJINIT(ImmediateObject))
+    {}
+};
+
+
+
 FBYCLASS(Net) : public ::FbyHelpers::BaseObj
 {
 public:
     std::vector<ServerPtr> servers;
     std::vector<SocketPtr> sockets;
+    std::vector<IntervalTimeoutObjectPtr> timers;
 
-Net() : BaseObj(BASEOBJINIT(Net)), servers(), sockets() {}
+Net() : BaseObj(BASEOBJINIT(Net)), servers(), sockets(), timers() {}
 public:
     ServerPtr createServer(CreateServerFunction f);
     void loop();
+
+    TimeoutObjectPtr setTimeout(std::function<void ()> callback,int delay_ms)
+    {
+        TimeoutObjectPtr timeout(new TimeoutObject(
+                                     callback,
+                                     delay_ms));
+        timers.push_back(timeout);
+        return timeout;
+    }
+    template <typename Arg0> TimeoutObjectPtr setTimeout(std::function<void (Arg0)> callback, int delay_ms,
+                                                         Arg0 arg0)
+    {
+        return setTimeout([=]() { callback(arg0); }, delay_ms);
+    }
+    void clearTimeout(TimeoutObjectPtr timeout)
+    {
+        auto timer(std::find(timers.begin(), timers.end(),timeout));
+        if (timer != timers.end())
+        {
+            timers.erase(timer);
+        }
+    }
+    IntervalObjectPtr setInterval(std::function<void ()> callback,int delay_ms)
+    {
+        IntervalObjectPtr timeout(new IntervalObject(
+                                     callback,
+                                     delay_ms));
+        timers.push_back(timeout);
+        return timeout;
+    }
+    void clearInterval(IntervalObjectPtr interval)
+    {
+        auto timer(std::find(timers.begin(), timers.end(),interval));
+        if (timer != timers.end())
+        {
+            timers.erase(timer);
+        }
+    }
+
+    ImmediateObjectPtr setImmediate(std::function<void ()> callback)
+    {
+        ImmediateObjectPtr timeout(new ImmediateObject(callback));
+        timers.push_back(timeout);
+        return timeout;
+    }
+    void clearImmediate(ImmediateObjectPtr immediate)
+    {
+        auto timer(std::find(timers.begin(), timers.end(), immediate));
+        if (timer != timers.end())
+        {
+            timers.erase(timer);
+        }
+    }
 };
 
 
@@ -247,6 +363,6 @@ inline Server::Server(Net * net, CreateServerFunction create_func)
 }
 
 
-extern bool ServeFile(HTTPRequestPtr request, HTTPResponsePtr response);
+extern bool ServeFile(const char * fileRoot, HTTPRequestPtr request, HTTPResponsePtr response);
 
 #endif /* #ifndef FBYNET_H_INCLUDED */
