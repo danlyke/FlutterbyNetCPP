@@ -57,7 +57,7 @@ static string JavaScriptQuote(const string &s)
 
 
 Regex regex_kml("kml",
-                "^(kml)\\:(.*)(\\n|$)");
+                "^(kml)\\:(.*?)(\\n|$)");
 
 Regex regex_gpstrack("gpstrack",
                      "^(gpstrack):(.*?)\\/(.*?)\\/(.*?)(\\/\\n|\n|$)");
@@ -121,6 +121,8 @@ void OpenLayersNode::AsHTML(HTMLOutputter &outputter)
     set_default(attrs, str_width, to_string(640));
     set_default(attrs, str_height, to_string(480));
 
+    //    cout << "Outputing OpenLayers node " << mapNum << endl;
+
     attrs[str_width] = attrs[str_width] + str_px;
     attrs[str_height] = attrs[str_height] + str_px;
     
@@ -149,19 +151,21 @@ void OpenLayersNode::AsHTML(HTMLOutputter &outputter)
         --bufferLength;
         ++buffer;
     }
+    // cout << "Processing line (" << bufferLength << ") '" << string(buffer, bufferLength) << "'" << endl;
     while (bufferLength)
     {
         RegexMatch match;
         bool changed(false);
 
-		if (regex_kml.Match(buffer, bufferLength, match))
+	if (regex_kml.Match(buffer, bufferLength, match))
         {
             buffer += match.End(0); bufferLength -= match.End(0);
 
             map<string, string> vars;
             CopyMap(attrs, vars);
+	    // cout << "Outputting kml URL '" << match.Match(2) << "'" << endl;
             vars[string("kmlurl")] = match.Match(2);
-			outputter.AddString(subst(sections_KML, vars));
+	    outputter.AddString(subst(sections_KML, vars));
             changed = true;
 		} else if (regex_gpstrack.Match(buffer, bufferLength, match)) {
             buffer += match.End(0); bufferLength -= match.End(0);
