@@ -656,13 +656,8 @@ void RegexHeader::ProcessMatches(TreeBuilder & treeBuilder,
         
         treeBuilder.Push(nodeHeader);
 
-        ParseTreeNodePtr node(new ElementNode("a"));
-        node->AddAttribute("id");
-        node->AddAttributeValue(sectionName);
-        node->AddAttribute("name");
-        node->AddAttributeValue(sectionName);
-        treeBuilder.Push(node);
-        treeBuilder.Pop();
+        nodeHeader->AddAttribute("id");
+        nodeHeader->AddAttributeValue(sectionName);
 
         FormatString(treeBuilder, buffer + match.Start(2), match.Length(2));
         treeBuilder.Pop();

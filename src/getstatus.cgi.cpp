@@ -70,7 +70,11 @@ int main(int argc, char**argv, char **env)
         for (auto s = a.begin(); s != a.end(); ++s)
         {
             if (s != a.begin()) sql += " OR ";
-            sql += "xid=" + db->Quote(*s);
+
+	    string ss(*s);
+ 	    if (ss.substr(0,3) == "id=")
+	      ss.erase(0,3);
+            sql += "xid=" + db->Quote(ss);
         }
         sql += ")";
     }
