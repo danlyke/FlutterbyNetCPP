@@ -523,7 +523,7 @@ string Wiki::LoadWikiText(WikiEntryPtr wikiEntry)
                 fileContents += "<img src=\"" + WebPathFromFilename(fullsize->filename)
                     + "\" width=\"" + to_string(fullsize->width)
                     + "\" height=\"" + to_string(fullsize->height)
-                    + "\" />\n\n";
+                    + "\" >\n\n";
 
                 vector<ImageInstancePtr> instances = wikidb->ImageInstances(image);
 
@@ -690,18 +690,18 @@ void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t l
     ostream os(&output);
     string onload;
 
-    os << "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"  \"http://www.w3.org/TR/html4/loose.dtd\">\n";
+    os << "<!DOCTYPE html>\n";
     os << "<html><head><title>" << wikiname << "</title>\n";
-    os << "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n";
+    os << "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" >\n";
     os << "<style type=\"text/css\">@import \"/screen.css\";</style>\n";
-    os << "<link href=\"/favicon.ico\" rel=\"icon\" type=\"image/ico\"></link>\n";
-    os << "<link href=\"/favicon.ico\" rel=\"shortcut icon\"></link>\n";
+    os << "<link href=\"/favicon.ico\" rel=\"icon\" type=\"image/ico\">\n";
+    os << "<link href=\"/favicon.ico\" rel=\"shortcut icon\">\n";
 
     if (treeBuilder.HasA("openlayers")
         || treeBuilder.ReferencesImage()
         || includeLoginManager)
     {
-        os << "<script type=\"text/javascript\" src=\"js/jquery-1.7.1.min.js\"></script>\n";
+        os << "<script type=\"text/javascript\" src=\"js/jquery-1.11.0.min.js\"></script>\n";
     }
 
     if (includeLoginManager)
@@ -716,14 +716,14 @@ void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t l
     
     if (treeBuilder.ReferencesImage())
     {
-        os << "<script type=\"text/javascript\" src=\"js/jquery.lightbox-0.5.js\"></script>\n";
-        os << "<link rel=\"stylesheet\" href=\"css/jquery.lightbox-0.5.css\" type=\"text/css\" media=\"screen\"></link>\n";
-        os << "<script \"text/javascript\">"
-            "$(function() {\n"
-            "    // Use this example, or...\n"
-            "    $('a[rel|=\"lightbox\"]').lightBox(); // Select all links that contains lightbox in the attribute rel\n"
-            "});\n"
-            "</script>\n";
+        os << "<script type=\"text/javascript\" src=\"js/lightbox.min.js\"></script>\n";
+        os << "<link rel=\"stylesheet\" href=\"css/lightbox.css\" type=\"text/css\" media=\"screen\">\n";
+//        os << "<script type=\"text/javascript\">"
+//            "$(function() {\n"
+//            "    // Use this example, or...\n"
+//            "    $('a[rel|=\"lightbox\"]').lightBox(); // Select all links that contains lightbox in the attribute rel\n"
+//            "});\n"
+//            "</script>\n";
     }
     if (treeBuilder.HasA("googlemap") || treeBuilder.HasA("openlayers")) {
         os << "<script type=\"text/javascript\" src=\"http://maps.google.com/maps/api/js?sensor=false&v=3.6&key=" << google_maps_api_key << "\"></script>\n";
@@ -741,9 +741,9 @@ void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t l
     if (treeBuilder.HasA("openlayers")) {
         os <<
             "<link rel=\"stylesheet\" href=\"js/ol/default/style.css\" type=\"text/css\">\n"
-            "</link>\n"
+            "\n"
             "<link  rel=\"stylesheet\" href=\"js/ol/default/google.css\" type=\"text/css\">\n"
-            "</link>\n"
+            "\n"
             "<script type=\"text/javascript\" src=\"js/OpenLayers-2.11/OpenLayers.js\">\n"
             "</script>\n"
             "<script type=\"text/javascript\" src=\"js/OSM_LocalTileProxy.js\">\n"
@@ -765,14 +765,14 @@ void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t l
     if (wikiname == "User:DanLyke")
     {
         os << "<link rel=\"openid2.provider\" href=\"https://www.google.com/accounts/o8/ud\">\n";
-        os << "</link>\n";
+        os << "\n";
         os << "<link rel=\"openid2.local_id\" href=\"https://profiles.google.com/danlyke1\">\n";
-        os << "<link rel=\"meta\" type=\"application/rdf+xml\" title=\"FOAF\" href=\"http://www.flutterby.net/User%3aDanLyke_foaf.rdf\" />\n";
+        os << "<link rel=\"meta\" type=\"application/rdf+xml\" title=\"FOAF\" href=\"http://www.flutterby.net/User%3aDanLyke_foaf.rdf\" >\n";
         os << "<link rel=\"alternate\" type=\"text/directory\"\n";
     }
     if (wikiname.substr(0,9) == "Category:")
     {
-        os << "<link rel=\"alternate\" href=\"http://www.flutterby.net/$syndifile.rss\" title=\"RSS\" type=\"application/rss+xml\" />\n";
+        os << "<link rel=\"alternate\" href=\"http://www.flutterby.net/$syndifile.rss\" title=\"RSS\" type=\"application/rss+xml\" >\n";
     }
 
     os << "</head>\n";
@@ -816,16 +816,16 @@ void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t l
     if (wikiname == "User:DanLyke")
     {
         os << "<div class=\"precontent\"><p class=\"h-card vcard\">\n";
-        os << "  <img class=\"u-photo\" width=\"154\" height=\"160\" align=\"right\" src=\"http://www.flutterby.net/files/images/14/09/22/640px-BoatBuildingPicAsPortrait.jpg\" alt=\"\" />\n";
-        os << "  <a class=\"p-name u-url url fn\" href=\"http://www.flutterby.net/User:DanLyke\">Dan Lyke</a><br />\n";
-        os << "  <a class=\"u-email email\" href=\"mailto:danlyke@flutterby.com\">danlyke@flutterby.com</a>,<br /> \n";
-        os << "  <span class=\"p-tel tel\">415-342-5180</span> (cell)<br />\n";
-        os << "  <span class=\"p-street-address street-address\">10 Mission Drive</span>,<br />\n";
+        os << "  <img class=\"u-photo\" width=\"154\" height=\"160\" align=\"right\" src=\"http://www.flutterby.net/files/images/14/09/22/640px-BoatBuildingPicAsPortrait.jpg\" alt=\"\" >\n";
+        os << "  <a class=\"p-name u-url url fn\" href=\"http://www.flutterby.net/User:DanLyke\">Dan Lyke</a><br >\n";
+        os << "  <a class=\"u-email email\" href=\"mailto:danlyke@flutterby.com\">danlyke@flutterby.com</a>,<br > \n";
+        os << "  <span class=\"p-tel tel\">415-342-5180</span> (cell)<br >\n";
+        os << "  <span class=\"p-street-address street-address\">10 Mission Drive</span>,<br >\n";
         os << "  <span class=\"p-locality locality\">Petaluma</span>\n";
         os << "  <span class=\"p-region region\">California\n";
         os << "  <span class=\"p-postal-code postal-code\">94952</span>\n";
         os << "  <span class=\"p-country-name country-name \">US</span>\n";
-        os << "  <br clear=\"both\" />\n";
+        os << "  <br clear=\"both\" >\n";
         os << "</p></div>\n";
     }
 
@@ -955,7 +955,7 @@ void Wiki::GetImageHTML(ostream &os,
     string align;
     string desc;
     string width;
-    string divclass("image");
+    string spanclass("image");
     string caption;
     vector<ImageInstancePtr> imginstances;
 
@@ -992,7 +992,7 @@ void Wiki::GetImageHTML(ostream &os,
         }
         else if (*note == "frame")
         {
-            divclass = "imageframed";
+            spanclass = "imageframed";
         }
         else if (*note == "none")
         {
@@ -1041,11 +1041,11 @@ void Wiki::GetImageHTML(ostream &os,
         }
         if (!hasImage)
         {
-            divclass = "imagemissing";
+            spanclass = "imagemissing";
 //            cerr <<  "Missing " << imagename << " from database\n";
         }
         
-        os <<  "<div class=\"" << divclass << align
+        os <<  "<span class=\"" << spanclass << align
            << "\" " << width << ">";
         WikiEntryPtr wikientry;
         if (wikidb->LoadOrCreateWikiEntry(wikientry, wikiname))
@@ -1063,7 +1063,7 @@ void Wiki::GetImageHTML(ostream &os,
             os << "<img src=\"" << WebPathFromFilename((*imginst)->filename)
                << "\" width=\"" << to_string((*imginst)->width)
                << "\" height=\"" << to_string((*imginst)->height)
-               << "\" alt=\"" << "\" />";
+               << "\" alt=\"" << "\" >";
         }
         else
         {
@@ -1081,19 +1081,19 @@ void Wiki::GetImageHTML(ostream &os,
             {
                 os << "<a href=\"./";
                 os << WebPathFromFilename(zoominst->filename);
-                os << "\" rel=\"lightbox\" caption=\"";
+                os << "\" data-lightbox=\"screen\" data-title=\"";
                 os << caption;
                 os << "\">";
-                os << "<div class=\"imagezoombox\">&nbsp;</div></a>\n";
+                os << "<span class=\"imagezoombox\">&nbsp;</span></a>\n";
             }
         }
         if (!caption.empty())
         {
-            os << "<div class=\"imagecaption\"><p class=\"imagecaption\">";
+            os << "<span class=\"imagecaption\"><p class=\"imagecaption\">";
             os << caption;
-            os << "</p></div>";
+            os << "</p></span>";
         }
-        os << "</div>";
+        os << "</span>";
     }
 }
 
@@ -1106,6 +1106,12 @@ HTMLOutputterString::HTMLOutputterString(ostream &os)
 void HTMLOutputterString::AddString(const string &s)
 {
     os << s;
+}
+
+
+bool EndTagShouldBeSuppressed(const string &name)
+{
+  return (name == "img") || (name == "br");
 }
 
 void HTMLOutputterString::AddHTMLNodeBegin(const string &name,
@@ -1121,14 +1127,15 @@ void HTMLOutputterString::AddHTMLNodeBegin(const string &name,
             os <<  " " << attr->first << "=\"" << attr->second << "\"";
         }
     }
-    if (empty_node)
-        os <<  "/";
+    //   if (empty_node)
+    // os <<  "/";
     os <<  ">";
 }
 
 void HTMLOutputterString::AddHTMLNodeEnd(const string &name)
 {
-    os <<  "</" << name << ">";
+    if (!EndTagShouldBeSuppressed(name))
+        os <<  "</" << name << ">";
     if (name == "p") os << endl << endl;
     if (name == "li") os << endl;
     if (name == "ul") os << endl;
