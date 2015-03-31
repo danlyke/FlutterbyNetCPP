@@ -2,9 +2,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <locale.h>
-#include "treebuilder.h"
-#include "stringutil.h"
-#include "regexparser.h"
+#include "fbytreebuilder.h"
+#include "fbystring.h"
+#include "fbyregexparser.h"
 #include "wiki.h"
 
 

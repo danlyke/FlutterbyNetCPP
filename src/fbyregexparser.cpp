@@ -2,9 +2,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <locale.h>
-#include "regexparser.h"
-#include "wikistrings.h"
-#include "stringutil.h"
+#include "fbyregexparser.h"
+#include "fbywikistrings.h"
+#include "fbystring.h"
 
 
 class RegexMatcher : public Regex {

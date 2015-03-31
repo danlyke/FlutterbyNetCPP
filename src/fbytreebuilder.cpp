@@ -1,4 +1,4 @@
-#include "treebuilder.h"
+#include "fbytreebuilder.h"
 
 TreeBuilder::TreeBuilder() : FbyHelpers::BaseObj(BASEOBJINIT(TreeBuilder)),
                              rootNode(new ElementNode("div")),

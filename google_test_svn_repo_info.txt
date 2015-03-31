@@ -1,0 +1,13 @@
+Path: .
+Working Copy Root Path: /home/danlyke/code/vendor/googletest-read-only
+URL: http://googletest.googlecode.com/svn/trunk
+Relative URL: ^/trunk
+Repository Root: http://googletest.googlecode.com/svn
+Repository UUID: 861a406c-534a-0410-8894-cb66d6ee9925
+Revision: 705
+Node Kind: directory
+Schedule: normal
+Last Changed Author: kosak@google.com
+Last Changed Rev: 705
+Last Changed Date: 2015-01-21 16:58:35 -0800 (Wed, 21 Jan 2015)
+

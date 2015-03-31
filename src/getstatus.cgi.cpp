@@ -6,7 +6,7 @@
 #include "fbydb.h"
 #include "fbyregex.h"
 #include "wikiobjects.h"
-#include "stringutil.h"
+#include "fbystring.h"
 
 #include <vector>
 using namespace std;

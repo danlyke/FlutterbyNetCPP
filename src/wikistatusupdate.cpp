@@ -1,9 +1,9 @@
-#include "treebuilder.h"
+#include "fbytreebuilder.h"
 #include "wiki.h"
 #include "wikistatusupdate.h"
 #include "wikidb.h"
-#include "parsetree.h"
-#include "regexparser.h"
+#include "fbyparsetree.h"
+#include "fbyregexparser.h"
 
 #include <boost/iostreams/stream.hpp>
 #include <fstream>

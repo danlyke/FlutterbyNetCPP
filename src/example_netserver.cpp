@@ -9,7 +9,7 @@ int main(int argc, char **argv)
     net->createServer([](SocketPtr socket)
                      {
                          socket->onData(
-                             [&socket](const char *data, int length)
+                             [socket](const char *data, int length)
                              {
                                  string s("Got ");
                                  s += string(data, length);

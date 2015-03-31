@@ -1,4 +1,4 @@
-#include "wikistrings.h"
+#include "fbywikistrings.h"
 #include <iostream>
 
 

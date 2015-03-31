@@ -8,7 +8,7 @@
 #include "fbydb.h"
 #include "fbyregex.h"
 #include "wikiobjects.h"
-#include "stringutil.h"
+#include "fbystring.h"
 
 #include <vector>
 using namespace std;
@@ -102,6 +102,7 @@ int main(int argc, char**argv, char **env)
                       || imagename[i] == '.'))
                 {
                     imagename.erase(i, i+1);
+                    --i;
                 }
             }
 

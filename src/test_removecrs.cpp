@@ -6,7 +6,7 @@
 #include <locale.h>
 #include <assert.h>
 
-#include "stringutil.h"
+#include "fbystring.h"
 
 const char *test = "This is a test\r\nof some CR removal\r\n\r\nTo see how things work\r\rSo there";
 const char *result = "This is a test\nof some CR removal\n\nTo see how things work\n\nSo there";

@@ -2,7 +2,7 @@
 #define WIKI_H_INCLUDED
 
 #include "fbydb.h"
-#include "parsetree.h"
+#include "fbyparsetree.h"
 #include "wikiobjects.h"
 
 FBYCLASSPTR(WikiDB);
