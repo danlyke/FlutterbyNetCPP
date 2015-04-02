@@ -123,11 +123,11 @@ ServerPtr Server::listen(int socket_num)
 
 bool Socket::write(char const *data, size_t size)
 {
-    fprintf(stderr, "Writing Socket %lx %*s to %d\n", (unsigned long)(this), (int)size, data, fd);
+//    fprintf(stderr, "Writing Socket %lx %*s to %d\n", (unsigned long)(this), (int)size, data, fd);
     bool wroteEverything(false);
     ssize_t bytes_written = ::write(fd, data, size);
 
-    fprintf(stderr, "Wrote %d\n", (int)bytes_written);
+//    fprintf(stderr, "Wrote %d\n", (int)bytes_written);
     if (bytes_written > 0)
     { 
         if (bytes_written < (ssize_t)size)
@@ -466,9 +466,9 @@ Net::loop()
 	int                 max_fd;
 	fd_set              read_fds,write_fds;
 
-    fprintf(stderr, "Beginning of loop\n");
-    fprintf(stderr, "Server size is %d sockets size is %d\n",
-            (int)(servers.size()), (int)(sockets.size()));
+//    fprintf(stderr, "Beginning of loop\n");
+//    fprintf(stderr, "Server size is %d sockets size is %d\n",
+//            (int)(servers.size()), (int)(sockets.size()));
     termsig = 0;
     catchsignals();
 
@@ -584,12 +584,13 @@ Net::loop()
                 if (len > 0)
                 {
                     buffer[len]  = 0;
-                    fprintf(stderr, "Socket %lx Read %d bytes from %d '%*s'\n", (unsigned long)(&**socket), (int)len, (*socket)->fd, (int)len, buffer);
+//                    fprintf(stderr, "Socket %lx Read %d bytes from %d '%*s'\n", (unsigned long)(&**socket), (int)len, (*socket)->fd, (int)len, buffer);
                     (*socket)->on_data(buffer, len);
-                    std::cerr << "Sent bytes to " << (*socket)->fd << " done " << (*socket)->doneWithWrites << std::endl;
+//                    std::cerr << "Sent bytes to " << (*socket)->fd << " done " << (*socket)->doneWithWrites << std::endl;
                 }
                 else
                 {
+                    (*socket)->on_end();
                     (*socket)->fd = -1;
                     fprintf(stderr,"%03d: read of %d bytes\n", (*socket)->fd, (int)len);
                     perror("Short read");
@@ -758,6 +759,7 @@ void HTTPRequestBuilder::GenerateHTTPResponder()
 {
     HTTPResponsePtr response(new HTTPResponse(socket));
     on_request(request, response);
+    
 #if 0
     for (auto route = routes.begin();
          route != routes.end();
@@ -865,13 +867,30 @@ void HTTPRequestBuilder::ReadHTTPHeaderValue(const char **data, size_t &length)
 
 }
 
+void HTTPRequestBuilder::ReadResetReadState(const char **data, size_t &length)
+{
+    ResetReadState();
+}
+
 void HTTPRequestBuilder::ReadHTTPRequestBuilderData(const char **data, size_t &length)
 {
-    // Should forward this data to the handler for this request.
-    // Should also keep track of bytes sent against header info for multipart
-    *data += length;
-    length = 0;
+    string s(*data, length);
+    if (content_length > length)
+    {
+        request->on_data(*data, length);
+        *data += length;
+        length = 0;
+    }
+    else
+    {
+        request->on_data(*data, content_length);
+        request->on_end();
+        *data += content_length;
+        length -= content_length;
+        readState = &HTTPRequestBuilder::ReadResetReadState;
+     }
 }
+
 
 
 void HTTPRequestBuilder::ReadData(const char *data, size_t length)
@@ -893,9 +912,12 @@ void HTTPRequestBuilder::ReadData(const char *data, size_t length)
 
 void HTTPRequestBuilder::EmitNameValue(std::string name, const std::string &value)
 {
+    if (name == "Content-Length")
+        content_length = stoi(value);
     std::transform(name.begin(), name.end(), name.begin(), ::tolower);
     request->headers[name] = value;
 }
+
 
 void HTTPRequestBuilder::ResetReadState()
 {
@@ -913,7 +935,8 @@ HTTPRequestBuilder::HTTPRequestBuilder(SocketPtr socket,
     readState(),
     request(),
     headerName(),
-    headerValue()
+    headerValue(),
+    content_length(-1)
 {
     ResetReadState();
 }
@@ -923,7 +946,9 @@ HTTPRequest::HTTPRequest() :
     method(),
     path(),
     protocol(),
-    headers()
+    headers(),
+    on_data([](const char *, size_t){}),
+    on_end()
 {
 }
 
