@@ -1,3 +1,4 @@
+#include "fby.h"
 #include "fbynet.h"
 #include "fbyregex.h"
 
@@ -15,6 +16,11 @@ private:
     void ReadValueEntity1(const char **data, size_t &length);
     void ReadValueEntity2(const char **data, size_t &length);
     void EmitNameValue(const std::string &name, const std::string &value);
+
+
+    int ReadDataAsHexDigit(const char **data, size_t &length);
+    void AppendUntil( string &which, const char toggleOn,
+                      const char **data, size_t &length);
     void (URLParse::*readState)(const char **data, size_t &length);
     string name;
     string value;
@@ -28,9 +34,10 @@ public:
 
 URLParse::URLParse()
     :
-    readState(URLParse::ReadName),
+    readState(&URLParse::ReadName),
     name(),
-    value()
+    value(),
+    entity(-1)
 {
 }
 
@@ -39,15 +46,15 @@ void URLParse::ResetReadState()
 {
     name.clear();
     value.clear();
-    readState = URLParse::ReadName;
+    readState = &URLParse::ReadName;
 }
 
 
-void URLParse::AppendUntil( string &which, const char *toggleOn,
+void URLParse::AppendUntil( string &which, const char toggleOn,
                             const char **data, size_t &length)
 {
     size_t i;
-    for (i = 0; i < length && (toggleOn != (*data)[i]) && ('%' != (*data)[i]))
+    for (i = 0; i < length && (toggleOn != (*data)[i]) && ('%' != (*data)[i]); ++i)
     {
     }
     which.append(*data, i);
@@ -63,13 +70,13 @@ void URLParse::ReadName(const char **data, size_t &length)
         switch(**data)
         {
         case '=' :
-            readState = URLParse::ReadValue;
+            readState = &URLParse::ReadValue;
             break;
         case '%' :
-            readState = URLParse::ReadNameEntity1;
+            readState = &URLParse::ReadNameEntity1;
             break;
         default:
-            THROWEXCEPTION("Bad internal URLParse::ReadName state");
+            assert(0);
             break;
         }
         ++(*data);
@@ -86,13 +93,13 @@ int URLParse::ReadDataAsHexDigit(const char **data, size_t &length)
         ++(*data);
         --length;
     }
-    elsif (**data >= 'A' && **data <= 'F')
+    else if (**data >= 'A' && **data <= 'F')
     {
         result = **data - 'A' + 0xa;
         ++(*data);
         --length;
     } 
-    elsif (**data >= 'a' && **data <= 'f')
+    else if (**data >= 'a' && **data <= 'f')
     {
         result = **data - 'a' + 0xa;
         ++(*data);
@@ -107,11 +114,11 @@ void URLParse::ReadNameEntity1(const char **data, size_t &length)
     if (result >= 0)
     {
         entity = result << 4;
-        readState = ReadNameEntity2;
+        readState = &URLParse::ReadNameEntity2;
     }
     else
     {
-        readState = ReadName;
+        readState = &URLParse::ReadName;
     }
 }
 
@@ -121,9 +128,12 @@ void URLParse::ReadNameEntity2(const char **data, size_t &length)
     if (result >= 0)
     {
         entity |= result;
-        name.append(entity);
+        char ch[2];
+        ch[0] = (char)(entity);
+        ch[1] = '\0';
+        name.append(ch);
     }
-    readState = ReadName;
+    readState = &URLParse::ReadName;
 }
 
 void URLParse::ReadValue(const char **data, size_t &length)
@@ -135,13 +145,13 @@ void URLParse::ReadValue(const char **data, size_t &length)
         {
         case '&' :
             EmitNameValue(name,value);
-            readState = URLParse::ReadName;
+            readState = &URLParse::ReadName;
             break;
         case '%' :
-            readState = URLParse::ReadValueEntity1;
+            readState = &URLParse::ReadValueEntity1;
             break;
         default:
-            THROWEXCEPTION("Bad internal URLParse::ReadValue state");
+            assert(0);
             break;
         }
         ++(*data);
@@ -156,11 +166,11 @@ void URLParse::ReadValueEntity1(const char **data, size_t &length)
     if (result >= 0)
     {
         entity = result << 4;
-        readState = ReadValueEntity2;
+        readState = &URLParse::ReadValueEntity2;
     }
     else
     {
-        readState = ReadValue;
+        readState = &URLParse::ReadValue;
     }
 }
 
@@ -170,9 +180,12 @@ void URLParse::ReadValueEntity2(const char **data, size_t &length)
     if (result >= 0)
     {
         entity |= result;
-        value.append(entity);
+        char ch[2];
+        ch[0] = (char)(entity);
+        ch[1] = '\0';
+        value.append(ch);
     }
-    readState = ReadValue;
+    readState = &URLParse::ReadValue;
 }
 
 void URLParse::EmitNameValue(const std::string &name, const std::string &value)
