@@ -123,11 +123,11 @@ ServerPtr Server::listen(int socket_num)
 
 bool Socket::write(char const *data, size_t size)
 {
-    fprintf(stderr, "Writing Socket %lx %*s to %d\n", (unsigned long)(this), (int)size, data, fd);
+//    fprintf(stderr, "Writing Socket %lx %*s to %d\n", (unsigned long)(this), (int)size, data, fd);
     bool wroteEverything(false);
     ssize_t bytes_written = ::write(fd, data, size);
 
-    fprintf(stderr, "Wrote %d\n", (int)bytes_written);
+//    fprintf(stderr, "Wrote %d\n", (int)bytes_written);
     if (bytes_written > 0)
     { 
         if (bytes_written < (ssize_t)size)
@@ -466,9 +466,9 @@ Net::loop()
 	int                 max_fd;
 	fd_set              read_fds,write_fds;
 
-    fprintf(stderr, "Beginning of loop\n");
-    fprintf(stderr, "Server size is %d sockets size is %d\n",
-            (int)(servers.size()), (int)(sockets.size()));
+//    fprintf(stderr, "Beginning of loop\n");
+//    fprintf(stderr, "Server size is %d sockets size is %d\n",
+//            (int)(servers.size()), (int)(sockets.size()));
     termsig = 0;
     catchsignals();
 
@@ -584,12 +584,13 @@ Net::loop()
                 if (len > 0)
                 {
                     buffer[len]  = 0;
-                    fprintf(stderr, "Socket %lx Read %d bytes from %d '%*s'\n", (unsigned long)(&**socket), (int)len, (*socket)->fd, (int)len, buffer);
+//                    fprintf(stderr, "Socket %lx Read %d bytes from %d '%*s'\n", (unsigned long)(&**socket), (int)len, (*socket)->fd, (int)len, buffer);
                     (*socket)->on_data(buffer, len);
-                    std::cerr << "Sent bytes to " << (*socket)->fd << " done " << (*socket)->doneWithWrites << std::endl;
+//                    std::cerr << "Sent bytes to " << (*socket)->fd << " done " << (*socket)->doneWithWrites << std::endl;
                 }
                 else
                 {
+                    (*socket)->on_end();
                     (*socket)->fd = -1;
                     fprintf(stderr,"%03d: read of %d bytes\n", (*socket)->fd, (int)len);
                     perror("Short read");
@@ -758,6 +759,7 @@ void HTTPRequestBuilder::GenerateHTTPResponder()
 {
     HTTPResponsePtr response(new HTTPResponse(socket));
     on_request(request, response);
+    
 #if 0
     for (auto route = routes.begin();
          route != routes.end();
@@ -865,13 +867,30 @@ void HTTPRequestBuilder::ReadHTTPHeaderValue(const char **data, size_t &length)
 
 }
 
+void HTTPRequestBuilder::ReadResetReadState(const char ** /* data */, size_t & /* length */)
+{
+    ResetReadState();
+}
+
 void HTTPRequestBuilder::ReadHTTPRequestBuilderData(const char **data, size_t &length)
 {
-    // Should forward this data to the handler for this request.
-    // Should also keep track of bytes sent against header info for multipart
-    *data += length;
-    length = 0;
+    string s(*data, length);
+    if (content_length > length)
+    {
+        request->on_data(*data, length);
+        *data += length;
+        length = 0;
+    }
+    else
+    {
+        request->on_data(*data, content_length);
+        request->on_end();
+        *data += content_length;
+        length -= content_length;
+        readState = &HTTPRequestBuilder::ReadResetReadState;
+     }
 }
+
 
 
 void HTTPRequestBuilder::ReadData(const char *data, size_t length)
@@ -893,9 +912,12 @@ void HTTPRequestBuilder::ReadData(const char *data, size_t length)
 
 void HTTPRequestBuilder::EmitNameValue(std::string name, const std::string &value)
 {
+    if (name == "Content-Length")
+        content_length = stoi(value);
     std::transform(name.begin(), name.end(), name.begin(), ::tolower);
     request->headers[name] = value;
 }
+
 
 void HTTPRequestBuilder::ResetReadState()
 {
@@ -909,6 +931,7 @@ HTTPRequestBuilder::HTTPRequestBuilder(SocketPtr socket,
     :
     BaseObj(BASEOBJINIT(HTTPRequestBuilder)),
     on_request(on_request),
+    content_length(-1),
     socket(socket),
     readState(),
     request(),
@@ -923,6 +946,8 @@ HTTPRequest::HTTPRequest() :
     method(),
     path(),
     protocol(),
+    on_data([](const char *, size_t){}),
+    on_end(),
     headers()
 {
 }
@@ -1012,6 +1037,210 @@ bool ServeFile(const char * fileRoot, HTTPRequestPtr request, HTTPResponsePtr re
     return false;
 }
               
+
+BodyParserURLEncoded::BodyParserURLEncoded()
+    :
+    readState(&BodyParserURLEncoded::ReadName),
+    name(),
+    value(),
+    entity(-1),
+    on_name_value([](const std::string &, const std::string &){}),
+    BaseObj(BASEOBJINIT(BodyParserURLEncoded))
+
+{
+}
+
+
+void BodyParserURLEncoded::ResetReadState()
+{
+    name.clear();
+    value.clear();
+    readState = &BodyParserURLEncoded::ReadName;
+}
+
+
+void BodyParserURLEncoded::AppendUntil( string &which, const char toggleOn,
+                            const char **data, size_t &length)
+{
+    size_t i;
+    for (i = 0; i < length && (toggleOn != (*data)[i]) && ('%' != (*data)[i]); ++i)
+    {
+    }
+    which.append(*data, i);
+    *data += i;
+    length -= i;
+}
+
+void BodyParserURLEncoded::ReadName(const char **data, size_t &length)
+{
+    AppendUntil(name, '=', data, length);
+    if (length)
+    {
+        switch(**data)
+        {
+        case '=' :
+            readState = &BodyParserURLEncoded::ReadValue;
+            break;
+        case '%' :
+            readState = &BodyParserURLEncoded::ReadNameEntity1;
+            break;
+        case '+' :
+            readState = &BodyParserURLEncoded::ReadNamePlusSpace;
+            break;
+        default:
+            assert(0);
+            break;
+        }
+        ++(*data);
+        --length;
+    }
+}
+
+int BodyParserURLEncoded::ReadDataAsHexDigit(const char **data, size_t &length)
+{
+    int result(-1);
+    if (**data >= '0' && **data <= '9')
+    {
+        result = **data - '0';
+        ++(*data);
+        --length;
+    }
+    else if (**data >= 'A' && **data <= 'F')
+    {
+        result = **data - 'A' + 0xa;
+        ++(*data);
+        --length;
+    } 
+    else if (**data >= 'a' && **data <= 'f')
+    {
+        result = **data - 'a' + 0xa;
+        ++(*data);
+        --length;
+    } 
+    return result;
+}
+
+void BodyParserURLEncoded::ReadNamePlusSpace(const char **data, size_t &length)
+{
+    name.append(" ");
+    readState = &BodyParserURLEncoded::ReadName;
+}
+
+void BodyParserURLEncoded::ReadNameEntity1(const char **data, size_t &length)
+{
+    int result = ReadDataAsHexDigit(data, length);
+    if (result >= 0)
+    {
+        entity = result << 4;
+        readState = &BodyParserURLEncoded::ReadNameEntity2;
+    }
+    else
+    {
+        readState = &BodyParserURLEncoded::ReadName;
+    }
+}
+
+void BodyParserURLEncoded::ReadNameEntity2(const char **data, size_t &length)
+{
+    int result = ReadDataAsHexDigit(data, length);
+    if (result >= 0)
+    {
+        entity |= result;
+        char ch[2];
+        ch[0] = (char)(entity);
+        ch[1] = '\0';
+        name.append(ch);
+    }
+    readState = &BodyParserURLEncoded::ReadName;
+}
+
+void BodyParserURLEncoded::ReadValue(const char **data, size_t &length)
+{
+    AppendUntil(value, '&', data, length);
+    if (length)
+    {
+        switch(**data)
+        {
+        case '&' :
+            EmitNameValue(name,value);
+            name.clear();
+            value.clear();
+            readState = &BodyParserURLEncoded::ReadName;
+            break;
+        case '%' :
+            readState = &BodyParserURLEncoded::ReadValueEntity1;
+            break;
+        case '+' :
+            readState = &BodyParserURLEncoded::ReadValuePlusSpace;
+            break;
+        default:
+            assert(0);
+            break;
+        }
+        ++(*data);
+        --length;
+    }
+}
+
+void BodyParserURLEncoded::ReadValuePlusSpace(const char **data, size_t &length)
+{
+    name.append(" ");
+    readState = &BodyParserURLEncoded::ReadValue;
+}
+
+
+void BodyParserURLEncoded::ReadValueEntity1(const char **data, size_t &length)
+{
+    int result = ReadDataAsHexDigit(data, length);
+    if (result >= 0)
+    {
+        entity = result << 4;
+        readState = &BodyParserURLEncoded::ReadValueEntity2;
+    }
+    else
+    {
+        readState = &BodyParserURLEncoded::ReadValue;
+    }
+}
+
+void BodyParserURLEncoded::ReadValueEntity2(const char **data, size_t &length)
+{
+    int result = ReadDataAsHexDigit(data, length);
+    if (result >= 0)
+    {
+        entity |= result;
+        char ch[2];
+        ch[0] = (char)(entity);
+        ch[1] = '\0';
+        value.append(ch);
+    }
+    readState = &BodyParserURLEncoded::ReadValue;
+}
+
+void BodyParserURLEncoded::EmitNameValue(const std::string &name, const std::string &value)
+{
+    on_name_value(name, value);
+}
+
+void BodyParserURLEncoded::on_data( const char *data, size_t length)
+{
+    while (length > 0)
+    {
+        ((this)->*(readState))(&data, length);
+    }
+}
+
+void BodyParserURLEncoded::on_end()
+{
+    EmitNameValue(name,value);
+    ResetReadState();
+}
+
+void BodyParserURLEncoded::onNameValue(OnNameValueFunction on_name_value)
+{
+    this->on_name_value = on_name_value;
+}
+
 
 
 #if 0

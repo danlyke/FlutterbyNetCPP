@@ -16,7 +16,9 @@ FBYCLASSPTR(HTTPRequest);
 FBYCLASSPTR(HTTPResponse);
 
 typedef std::function<void (const char *data, size_t length)> OnDataFunction;
+typedef std::function<void ()> OnEndFunction;
 typedef std::function<void ()> OnDrainFunction;
+typedef std::function<void (const std::string &, const std::string &)> OnNameValueFunction;
 typedef std::function<void (SocketPtr)> CreateServerFunction;
 typedef std::function<void (HTTPRequestPtr request, HTTPResponsePtr response)> RespondToHTTPRequestFunction;
 typedef std::function<HTTPResponsePtr (std::string host, std::string method, std::string path,
@@ -33,6 +35,7 @@ private:
     int fd;
     OnDataFunction on_data;
     OnDrainFunction on_drain;
+    OnEndFunction on_end;
     Net * net;
     std::string queuedWrite;
     bool emitDrain;
@@ -50,6 +53,10 @@ public:
     {
         this->on_drain = on_drain;
     }
+    void onEnd(OnEndFunction on_end)
+    {
+        this->on_end = on_end;
+    }
 
 
     bool write(const char *data, size_t length);
@@ -64,19 +71,19 @@ public:
 
     bool end(const char *data, size_t length)
     {
-        std::cout << "Writing end " << (unsigned long)(this) << std::endl;
+//        std::cout << "Writing end " << (unsigned long)(this) << std::endl;
         doneWithWrites = true;
         return write(data, length);
     }
     bool end(const std::string &s)
     {
-        std::cout << "Writing end " << (unsigned long)(this) << std::endl;
+//        std::cout << "Writing end " << (unsigned long)(this) << std::endl;
         doneWithWrites = true;
         return write(s);
     }
     bool end(const char *data)
     {
-        std::cout << "Writing end " << (unsigned long)(this) << std::endl;
+//        std::cout << "Writing end " << (unsigned long)(this) << std::endl;
         doneWithWrites = true;
         return write(data);
     }
@@ -275,12 +282,22 @@ FBYCLASSPTR(HTTPRequest);
 FBYCLASS(HTTPRequest) : public ::FbyHelpers::BaseObj
 {
     friend class HTTPRequestBuilder;
+private:
+    OnDataFunction on_data;
+    OnEndFunction on_end;
 public:
     std::string method;
     std::string path;
     std::string protocol;
     std::map<std::string, std::string> headers;
-
+    void onData(OnDataFunction on_data)
+    {
+        this->on_data = on_data;
+    }
+    void onEnd(OnEndFunction on_end)
+    {
+        this->on_end = on_end;
+    }
     HTTPRequest();
 };
 
@@ -301,14 +318,17 @@ private:
     void ConsumeHTTPHeaderNameWhitespace(const char **data, size_t &length);
     void ReadHTTPHeaderValue(const char **data, size_t &length);
     void ReadHTTPRequestBuilderData(const char **data, size_t &length);
+    void ReadResetReadState(const char **data, size_t &length);
 
     void ResetReadState();
 
     void GenerateHTTPResponder();
 protected:
+
     virtual void EmitNameValue(std::string name, const std::string &value);
-   
+
     RespondToHTTPRequestFunction on_request;
+    size_t content_length;
     SocketPtr socket;
 public:
     void (HTTPRequestBuilder::*readState)(const char **data, size_t &length);
@@ -340,8 +360,9 @@ public:
 inline Socket::Socket()
 : BaseObj(BASEOBJINIT(Socket)),
               fd(-1), 
-              on_data(), 
-              on_drain(),
+              on_data([](const char *, size_t){}), 
+              on_drain([](){}),
+              on_end([](){}),
               net(),
               queuedWrite(), emitDrain(false),
               doneWithWrites(false)
@@ -361,6 +382,39 @@ inline Server::Server(Net * net, CreateServerFunction create_func)
     create_func(create_func), fd(-1), net(net)
 {
 }
+
+FBYCLASSPTR(BodyParserURLEncoded);
+FBYCLASS(BodyParserURLEncoded) : public ::FbyHelpers::BaseObj
+{
+private:
+    void ResetReadState();
+    void ReadName(const char **data, size_t &length);
+    void ReadNamePlusSpace(const char **data, size_t &length);
+    void ReadNameEntity1(const char **data, size_t &length);
+    void ReadNameEntity2(const char **data, size_t &length);
+    void ReadValue(const char **data, size_t &length);
+    void ReadValuePlusSpace(const char **data, size_t &length);
+    void ReadValueEntity1(const char **data, size_t &length);
+    void ReadValueEntity2(const char **data, size_t &length);
+    void EmitNameValue(const std::string &name, const std::string &value);
+
+
+    int ReadDataAsHexDigit(const char **data, size_t &length);
+    void AppendUntil( std::string &which, const char toggleOn,
+                      const char **data, size_t &length);
+    void (BodyParserURLEncoded::*readState)(const char **data, size_t &length);
+    std::string name;
+    std::string value;
+    int entity;
+   
+public:
+    OnNameValueFunction on_name_value;
+    void on_data(const char *data, size_t length);
+    void on_end();
+    void onNameValue(OnNameValueFunction on_name_value);
+    BodyParserURLEncoded();
+};
+
 
 
 extern bool ServeFile(const char * fileRoot, HTTPRequestPtr request, HTTPResponsePtr response);

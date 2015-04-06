@@ -20,11 +20,18 @@ const char htmlHeaderStuff[] =
     "<body>\n"
     "<h1></h1>\n"
     "\n"
+    "<form method=\"POST\">\n"
+    "Start time: <input type=\"time\" size=\"8\" name=\"start_time_1\" value=\"5:00\" />\n"
+    "Start time: <input type=\"time\" size=\"8\" name=\"start_time_2\" value=\"20:00\" />\n"
     "<table>\n"
-    "<tr><th>Zone</th><th>Run Time</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>\n";
+    "<tr><th rowspan=2 >Zone</th><th rowspan= 2 >Run Time</th>"
+"<th colspan=2>Mon</th><th colspan=2>Tue</th><th colspan=2>Wed</th><th colspan=2>Thu</th><th colspan=2>Fri</th><th colspan=2>Sat</th><th colspan=2>Sun</th></tr>\n"
+"<tr><th>AM</th><th>PM</th> <th>AM</th><th>PM</th> <th>AM</th><th>PM</th> <th>AM</th><th>PM</th> <th>AM</th><th>PM</th> <th>AM</th><th>PM</th> <th>AM</th><th>PM</th> </tr>\n";
 
 const char htmlFooterStuff[] =
     "</table>\n"
+    "<button type=\"submit\" name=\"Save\" value=\"Save\" />"
+    "</form>\n"
     "\n"
     "</body>\n"
     "</html>\n";
@@ -81,15 +88,24 @@ string ValveHTML(ValvePtr valve)
     
     int min = valve->remaining_run_time / 60;
     int secs = valve->remaining_run_time % 60;
-    ss << " " << min << ":" << secs;
+    char achTime[16];
+    snprintf(achTime,sizeof(achTime), "%d:%2.2d", min, secs);
+    ss << " " << achTime;
     ss << "</td>";
     for (int i = 0; i < 7; ++i)
     {
         ss << "<td><input type=\"checkbox\" name=\"valve_" << daysOfWeek[i]
-           << "_" << valve->valve_num << "\" ";
+           << "_am_" << valve->valve_num << "\" ";
         if (valve->days & (1 << i))
         {
             ss << " checked=\"1\" ";
+        }
+        ss << "/></td>";
+        ss << "<td><input type=\"checkbox\" name=\"valve_" << daysOfWeek[i]
+           << "_pm_" << valve->valve_num << "\" ";
+        if (valve->days & (1 << (i + 8)))
+        {
+            ss << " checked=\"0\" ";
         }
         ss << "/></td>";
     }
@@ -107,8 +123,8 @@ int main(int argc, char **argv)
         ValvePtr valve(new Valve);
         valve->name = "Valve " + to_string(i + 1);
         valve->valve_num = i;
-        valve->run_time = 15 + i;
-        valve->days = 0xff;
+        valve->run_time = 1 + i;
+        valve->days = -1;
         valves.push_back(valve);
     }
 
@@ -147,7 +163,7 @@ int main(int argc, char **argv)
                                        {
                                            auto valve = valves[valve_num];
                                            valve->TurnOn();
-                                           int valve_interval = 15;
+                                           int valve_interval = 1;
                                            valve->timer = net->setInterval
                                                (
                                                    [valve, net, valve_interval]()
@@ -158,8 +174,8 @@ int main(int argc, char **argv)
                                                            valve->remaining_run_time = 0;
                                                            net->clearInterval(valve->timer);
                                                            valve->timer = IntervalObjectPtr();
+                                                           valve->TurnOff();
                                                        }
-                                                       valve->TurnOff();
                                                    },
                                                    valve_interval * 1000
                                                    );

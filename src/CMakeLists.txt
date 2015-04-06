@@ -189,6 +189,9 @@ target_link_libraries (test_parsehtml LINK_PUBLIC fbywiki fby sqlite3 pq boost_f
 add_executable(test_nethttpheaders test_nethttpheaders.cpp)
 target_link_libraries (test_nethttpheaders LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
+add_executable(test_bodyparse test_bodyparse.cpp)
+target_link_libraries (test_bodyparse LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
+
 install (TARGETS fby DESTINATION lib)
 install (FILES
   fby_core_unix_array.h           fbyfileutils.h   fbyparsetree.h    fbytreebuilder.h
