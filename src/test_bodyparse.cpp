@@ -5,194 +5,6 @@
 #include <string>
 using namespace std;
 
-class URLParse
-{
-private:
-    void ResetReadState();
-    void ReadName(const char **data, size_t &length);
-    void ReadNameEntity1(const char **data, size_t &length);
-    void ReadNameEntity2(const char **data, size_t &length);
-    void ReadValue(const char **data, size_t &length);
-    void ReadValueEntity1(const char **data, size_t &length);
-    void ReadValueEntity2(const char **data, size_t &length);
-    void EmitNameValue(const std::string &name, const std::string &value);
-
-
-    int ReadDataAsHexDigit(const char **data, size_t &length);
-    void AppendUntil( string &which, const char toggleOn,
-                      const char **data, size_t &length);
-    void (URLParse::*readState)(const char **data, size_t &length);
-    string name;
-    string value;
-    int entity;
-   
-public:
-    void onData(const char *data);
-    void onEnd();
-    URLParse();
-};
-
-URLParse::URLParse()
-    :
-    readState(&URLParse::ReadName),
-    name(),
-    value(),
-    entity(-1)
-{
-}
-
-
-void URLParse::ResetReadState()
-{
-    name.clear();
-    value.clear();
-    readState = &URLParse::ReadName;
-}
-
-
-void URLParse::AppendUntil( string &which, const char toggleOn,
-                            const char **data, size_t &length)
-{
-    size_t i;
-    for (i = 0; i < length && (toggleOn != (*data)[i]) && ('%' != (*data)[i]); ++i)
-    {
-    }
-    which.append(*data, i);
-    *data += i;
-    length -= i;
-}
-
-void URLParse::ReadName(const char **data, size_t &length)
-{
-    AppendUntil(name, '=', data, length);
-    if (length)
-    {
-        switch(**data)
-        {
-        case '=' :
-            readState = &URLParse::ReadValue;
-            break;
-        case '%' :
-            readState = &URLParse::ReadNameEntity1;
-            break;
-        default:
-            assert(0);
-            break;
-        }
-        ++(*data);
-        --length;
-    }
-}
-
-int URLParse::ReadDataAsHexDigit(const char **data, size_t &length)
-{
-    int result(-1);
-    if (**data >= '0' && **data <= '9')
-    {
-        result = **data - '0';
-        ++(*data);
-        --length;
-    }
-    else if (**data >= 'A' && **data <= 'F')
-    {
-        result = **data - 'A' + 0xa;
-        ++(*data);
-        --length;
-    } 
-    else if (**data >= 'a' && **data <= 'f')
-    {
-        result = **data - 'a' + 0xa;
-        ++(*data);
-        --length;
-    } 
-    return result;
-}
-
-void URLParse::ReadNameEntity1(const char **data, size_t &length)
-{
-    int result = ReadDataAsHexDigit(data, length);
-    if (result >= 0)
-    {
-        entity = result << 4;
-        readState = &URLParse::ReadNameEntity2;
-    }
-    else
-    {
-        readState = &URLParse::ReadName;
-    }
-}
-
-void URLParse::ReadNameEntity2(const char **data, size_t &length)
-{
-    int result = ReadDataAsHexDigit(data, length);
-    if (result >= 0)
-    {
-        entity |= result;
-        char ch[2];
-        ch[0] = (char)(entity);
-        ch[1] = '\0';
-        name.append(ch);
-    }
-    readState = &URLParse::ReadName;
-}
-
-void URLParse::ReadValue(const char **data, size_t &length)
-{
-    AppendUntil(value, '&', data, length);
-    if (length)
-    {
-        switch(**data)
-        {
-        case '&' :
-            EmitNameValue(name,value);
-            readState = &URLParse::ReadName;
-            break;
-        case '%' :
-            readState = &URLParse::ReadValueEntity1;
-            break;
-        default:
-            assert(0);
-            break;
-        }
-        ++(*data);
-        --length;
-    }
-}
-
-
-void URLParse::ReadValueEntity1(const char **data, size_t &length)
-{
-    int result = ReadDataAsHexDigit(data, length);
-    if (result >= 0)
-    {
-        entity = result << 4;
-        readState = &URLParse::ReadValueEntity2;
-    }
-    else
-    {
-        readState = &URLParse::ReadValue;
-    }
-}
-
-void URLParse::ReadValueEntity2(const char **data, size_t &length)
-{
-    int result = ReadDataAsHexDigit(data, length);
-    if (result >= 0)
-    {
-        entity |= result;
-        char ch[2];
-        ch[0] = (char)(entity);
-        ch[1] = '\0';
-        value.append(ch);
-    }
-    readState = &URLParse::ReadValue;
-}
-
-void URLParse::EmitNameValue(const std::string &name, const std::string &value)
-{
-    cout << "Name " << name << " Value '" << value << "'" << endl;
-}
-
 
 const char testbody[] =
     "start_time_1=5%3A00&start_time_2=20%3A00&name_0=Valve+1&time"
@@ -238,4 +50,14 @@ const char testbody[] =
 
 int main(int argc, char **argv)
 {
+    BodyParserURLEncodedPtr parseptr(new BodyParserURLEncoded);
+    parse.onNameValue(
+        [](const std::string &name, const std::string &value)
+        {
+            cout << "Got " << name << ": '" << value << "'" << endl;
+        });
+    parse.on_data(testbody, sizeof(testbody));
+    parse.on_end();
+    return 0;
+
 }
