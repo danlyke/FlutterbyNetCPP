@@ -5,6 +5,8 @@
 #include "openlayerstemplate.h"
 
 using namespace std;
+bool debug = false;
+
 
 static string EscapeBackslashes(const string &s, size_t start, size_t end)
 {
@@ -70,10 +72,10 @@ Regex regex_georss("georss",
 
 
 Regex regex_latloncsv("latloncsv",
-                      "^(-?\\d+\\.\\d+)\\,\\s*(-?\\d+\\.\\d+)(\\,\\s*(.*?))\\n");
+                      "^(-?\\d+\\.\\d+)\\,\\s*(-?\\d+\\.\\d+)(\\,\\s*(.*?))(\\n|$)");
 
 Regex regex_latloncsv_no_label("latloncsv no label",
-                      "^(-?\\d+\\.\\d+)\\,\\s*(-?\\d+\\.\\d+)\\n");
+                      "^(-?\\d+\\.\\d+)\\,\\s*(-?\\d+\\.\\d+)(\\n|$)");
 
 
 Regex regex_label("label",
@@ -83,7 +85,7 @@ Regex regex_lat_lon_title("lat_lon_title",
                           "^(-?\\d+\\.\\d+)\\,\\s*(-?\\d+\\.\\d+)\\n([\\w].*?)(\\n+|$)");
 
 Regex regex_zoom_color("zoom & color",
-                       "^(\\d+)\\#([0-9A-F][0-9A-F])([0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F])\\n");
+                       "^(\\d+)\\#([0-9A-F][0-9A-F])([0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F])(\\n|$)");
 
 int OpenLayersNode::mapNum = 0;
 
@@ -97,10 +99,10 @@ const string & OpenLayersNode::Name()
 
 static void CopyMap(map<string,string> in, map<string,string> &out)
 {
-//    cout << "Copying map" << endl;
+    if (debug) cout << "Copying map" << endl;
     for (auto i = in.begin(); i != in.end(); ++i)
     {
-//        cout << "    " << i->first << ": " << i->second << endl;
+        if (debug) cout << "    " << i->first << ": " << i->second << endl;
         out[i->first] = i->second;
     }
 }
@@ -121,7 +123,7 @@ void OpenLayersNode::AsHTML(HTMLOutputter &outputter)
     set_default(attrs, str_width, to_string(640));
     set_default(attrs, str_height, to_string(480));
 
-    //    cout << "Outputing OpenLayers node " << mapNum << endl;
+    if (debug) cout << "Outputing OpenLayers node " << mapNum << endl;
 
     attrs[str_width] = attrs[str_width] + str_px;
     attrs[str_height] = attrs[str_height] + str_px;
@@ -151,19 +153,19 @@ void OpenLayersNode::AsHTML(HTMLOutputter &outputter)
         --bufferLength;
         ++buffer;
     }
-    // cout << "Processing line (" << bufferLength << ") '" << string(buffer, bufferLength) << "'" << endl;
+    if (debug) cout << "Processing line (" << bufferLength << ") '" << string(buffer, bufferLength) << "'" << endl;
     while (bufferLength)
     {
         RegexMatch match;
         bool changed(false);
 
-	if (regex_kml.Match(buffer, bufferLength, match))
+        if (regex_kml.Match(buffer, bufferLength, match))
         {
             buffer += match.End(0); bufferLength -= match.End(0);
 
             map<string, string> vars;
             CopyMap(attrs, vars);
-	    // cout << "Outputting kml URL '" << match.Match(2) << "'" << endl;
+            if (debug) cout << "Outputting kml URL '" << match.Match(2) << "'" << endl;
             vars[string("kmlurl")] = match.Match(2);
 	    outputter.AddString(subst(sections_KML, vars));
             changed = true;
@@ -202,8 +204,9 @@ void OpenLayersNode::AsHTML(HTMLOutputter &outputter)
 			outputter.AddString(subst(sections_GeoRSS, vars));
 			changed = true;
 		}
-        if (regex_latloncsv.Match(buffer, bufferLength, match))
+        else if (regex_latloncsv.Match(buffer, bufferLength, match))
         {
+            if (debug) cout << "Latlon csv " << match.Match(0) << endl;
             buffer += match.End(0); bufferLength -= match.End(0);
 
             string lat = match.Match(1);
@@ -244,8 +247,9 @@ void OpenLayersNode::AsHTML(HTMLOutputter &outputter)
 			outputter.AddString(subst(sections_marker, vars));
 			changed = true;
 		}
-		if (regex_lat_lon_title.Match(buffer, bufferLength, match))
+		else if (regex_lat_lon_title.Match(buffer, bufferLength, match))
 		{
+            if (debug) cout << "Latlon title " << match.Match(0) << endl;
             buffer += match.End(0); bufferLength -= match.End(0);
 
 			string lat = match.Match(1);
@@ -285,7 +289,7 @@ void OpenLayersNode::AsHTML(HTMLOutputter &outputter)
 			outputter.AddString(subst(sections_marker, vars));
 			changed = true;
 		}
-        if (regex_zoom_color.Match(buffer, bufferLength, match))
+        else if (regex_zoom_color.Match(buffer, bufferLength, match))
 		{
             buffer += match.End(0); bufferLength -= match.End(0);
 
@@ -315,7 +319,7 @@ void OpenLayersNode::AsHTML(HTMLOutputter &outputter)
 			changed = true;
 		}
         // THIS LOOKS WRONG!
-        if (regex_latloncsv.Match(buffer, bufferLength, match))
+        else if (regex_latloncsv.Match(buffer, bufferLength, match))
 		{
             buffer += match.End(0); bufferLength -= match.End(0);
 
@@ -328,6 +332,8 @@ void OpenLayersNode::AsHTML(HTMLOutputter &outputter)
 			vars[string("zoomq")] = zoomq;
 			vars[string("huh")] = huh;
 			vars[string("color")] = color;
+
+            if (debug) cout << "Outputting latloncsv for " << match.Match(0) << endl;
 
 			outputter.AddString(subst(sections_vectorlayerpreamble, vars));
 			while (regex_latloncsv_no_label.Match(buffer, bufferLength, match))
