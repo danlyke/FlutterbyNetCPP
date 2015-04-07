@@ -1063,7 +1063,11 @@ void BodyParserURLEncoded::AppendUntil( string &which, const char toggleOn,
                             const char **data, size_t &length)
 {
     size_t i;
-    for (i = 0; i < length && (toggleOn != (*data)[i]) && ('%' != (*data)[i]); ++i)
+    for (i = 0;
+         i < length && (toggleOn != (*data)[i])
+             && ('%' != (*data)[i])
+             && ('+' != (*data)[i]);
+         ++i)
     {
     }
     which.append(*data, i);
@@ -1184,7 +1188,7 @@ void BodyParserURLEncoded::ReadValue(const char **data, size_t &length)
 
 void BodyParserURLEncoded::ReadValuePlusSpace(const char **data, size_t &length)
 {
-    name.append(" ");
+    value.append(" ");
     readState = &BodyParserURLEncoded::ReadValue;
 }
 

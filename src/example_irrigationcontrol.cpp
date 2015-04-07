@@ -9,6 +9,9 @@
 #include <unistd.h>
 #include <sstream>
 
+
+#include "irrigation.h"
+
 using namespace std;
 
 
@@ -20,9 +23,9 @@ const char htmlHeaderStuff[] =
     "<body>\n"
     "<h1></h1>\n"
     "\n"
-    "<form method=\"POST\">\n"
-    "Start time: <input type=\"time\" size=\"8\" name=\"start_time_1\" value=\"5:00\" />\n"
-    "Start time: <input type=\"time\" size=\"8\" name=\"start_time_2\" value=\"20:00\" />\n"
+    "<form method=\"POST\">\n";
+
+const char htmlTableHeaderStuff[] =
     "<table>\n"
     "<tr><th rowspan=2 >Zone</th><th rowspan= 2 >Run Time</th>"
 "<th colspan=2>Mon</th><th colspan=2>Tue</th><th colspan=2>Wed</th><th colspan=2>Thu</th><th colspan=2>Fri</th><th colspan=2>Sat</th><th colspan=2>Sun</th></tr>\n"
@@ -30,37 +33,13 @@ const char htmlHeaderStuff[] =
 
 const char htmlFooterStuff[] =
     "</table>\n"
-    "<button type=\"submit\" name=\"Save\" value=\"Save\" />"
+    "<input type=\"submit\" name=\"Save\" value=\"Save\" />"
     "</form>\n"
     "\n"
     "</body>\n"
     "</html>\n";
 
 
-FBYCLASSPTR(Valve);
-FBYCLASS(Valve) : public FbyHelpers::BaseObj {
-public:
-    string name;
-    int valve_num;
-    int run_time;
-    int remaining_run_time;
-    int days;
-    IntervalObjectPtr timer;
-    
-
-    Valve() : 
-        BaseObj(BASEOBJINIT(Valve)),
-        name(), valve_num(), run_time(), remaining_run_time(), days(),timer() {}
-    void TurnOff()
-    {
-        cout << "Turning off valve " << valve_num << endl;
-    }
-    void TurnOn()
-    {
-        remaining_run_time = run_time * 60;
-        cout << "Turning on valve " << valve_num << endl;
-    }
-};
 
 
 void AddInput(stringstream &ss, int valve_id, string name, int size, string value, const char *type = "text")
@@ -105,7 +84,7 @@ string ValveHTML(ValvePtr valve)
            << "_pm_" << valve->valve_num << "\" ";
         if (valve->days & (1 << (i + 8)))
         {
-            ss << " checked=\"0\" ";
+            ss << " checked=\"1\" ";
         }
         ss << "/></td>";
     }
@@ -113,6 +92,7 @@ string ValveHTML(ValvePtr valve)
     ss << "</tr>\n\n";
     return ss.str();
 }
+
 
 int main(int argc, char **argv)
 {
@@ -146,14 +126,97 @@ int main(int argc, char **argv)
                                    }
                                    if (request->path == "/")
                                    {
-                                       response->writeHead(200);
-                                       response->write(htmlHeaderStuff,sizeof(htmlHeaderStuff));
-                                       for (auto valve : valves)
+                                       if (request->method == "POST")
                                        {
-                                           response->write(ValveHTML(valve));
+                                           BodyParserURLEncodedPtr parseptr(new BodyParserURLEncoded);
+                                           NameValuePairPtr nvpptr(new NameValuePair);
+                                           parseptr->onNameValue([nvpptr](string name, string value)
+                                                                 {
+                                                                     nvpptr->nvp[name] = value;
+                                                                 });
+
+                                           request->onData([parseptr](const char *data, size_t length)
+                                                            { parseptr->on_data(data,length); });
+
+                                           request->onEnd([parseptr, nvpptr, valves, response]()
+                                                           {
+                                                               for (auto valve : valves)
+                                                               {
+                                                                   char valveIdch[2];
+                                                                   valveIdch[0] = '0' + valve->valve_num;
+                                                                   valveIdch[1] = '\0';
+                                                                   string valveId(valveIdch);
+
+                                                                   auto value = nvpptr->nvp.find("name_" + valveId);
+                                                                   if (value != nvpptr->nvp.end())
+                                                                   { valve->name  = value->second; }
+
+                                                                   value = nvpptr->nvp.find("time_" + valveId);
+                                                                   if (value != nvpptr->nvp.end())
+                                                                   { valve->run_time  = stoi(value->second); }
+
+                                                                   for (int dow = 0; dow < 7; ++dow)
+                                                                   {
+                                                                       string strValve("valve_");
+
+                                                                       value = nvpptr->nvp.find(
+                                                                           strValve + daysOfWeek[dow] + "_am_" + valveId);
+                                                                       if (value != nvpptr->nvp.end()
+                                                                           && value->second == "on")
+                                                                       {
+                                                                           valve->days |= (1 << dow);
+                                                                       }
+                                                                       else
+                                                                       {
+                                                                           valve->days &= ~(1 << dow);
+                                                                       }
+                                                                           
+                                                                       value = nvpptr->nvp.find(
+                                                                           strValve + daysOfWeek[dow] + "_pm_" + valveId);
+                                                                       if (value != nvpptr->nvp.end()
+                                                                           && value->second == "on")
+                                                                       {
+                                                                           valve->days |= (1 << (dow + 8));
+                                                                       }
+                                                                       else
+                                                                       {
+                                                                           valve->days &= ~(1 << (dow + 8));
+                                                                       } 
+                                                                   }
+                                                               }
+                                                               auto value = nvpptr->nvp.find("start_time_1");
+                                                               if (value != nvpptr->nvp.end())
+                                                               { startTime1 = value->second; }
+
+                                                               value = nvpptr->nvp.find("start_time_2");
+                                                               if (value != nvpptr->nvp.end())
+                                                               { startTime2 = value->second; }
+
+                                                               response->redirect("/");
+                                                           });
+                                           
                                        }
+                                       else
+                                       {
+                                           response->writeHead(200);
+                                           response->write(htmlHeaderStuff,sizeof(htmlHeaderStuff));
+                                           stringstream ss;
+                                           ss << "Start time: <input type=\"time\" size=\"8\" name=\"start_time_1\" value=\"";
+                                           ss << startTime1;
+                                           ss << "\" />\n";
+                                           ss << "Start time: <input type=\"time\" size=\"8\" name=\"start_time_2\" value=\"";
+                                           ss << startTime2;
+                                           ss<< "\" />\n";
+                                           response->write(ss.str());
+
+                                           response->write(htmlTableHeaderStuff, sizeof(htmlTableHeaderStuff));
+                                           for (auto valve : valves)
+                                           {
+                                               response->write(ValveHTML(valve));
+                                           }
                                        
-                                       response->end(htmlFooterStuff,sizeof(htmlFooterStuff));
+                                           response->end(htmlFooterStuff,sizeof(htmlFooterStuff));
+                                       }
                                    }
                                    else if (regexStart.Match(request->path, match))
                                    {

@@ -416,7 +416,19 @@ public:
 };
 
 
+FBYCLASSPTR(NameValuePair);
+FBYCLASS(NameValuePair) : public ::FbyHelpers::BaseObj
+{
+public:
+    std::map<std::string, std::string> nvp;
+    NameValuePair();
+};
 
+inline NameValuePair::NameValuePair() :
+::FbyHelpers::BaseObj(BASEOBJINIT(NameValuePair)),
+    nvp()
+{
+}
 extern bool ServeFile(const char * fileRoot, HTTPRequestPtr request, HTTPResponsePtr response);
 
 #endif /* #ifndef FBYNET_H_INCLUDED */

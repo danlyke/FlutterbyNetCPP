@@ -10,7 +10,10 @@ using namespace FbyHelpers;
 
 const char testbody[] =
     "start_time_1=5%3A00&start_time_2=20%3A00&name_0=Valve+1&time"
-    "_0=1&valve_Mon_am_0=on&valve_Mon_pm_0=on&valve_Tue_am_0=on&v"
+    "_0=1";
+
+#if 0
+    "&valve_Mon_am_0=on&valve_Mon_pm_0=on&valve_Tue_am_0=on&v"
     "alve_Tue_pm_0=on&valve_Wed_am_0=on&valve_Wed_pm_0=on&valve_T"
     "hu_am_0=on&valve_Thu_pm_0=on&valve_Fri_am_0=on&valve_Fri_pm_"
     "0=on&valve_Sat_am_0=on&valve_Sat_pm_0=on&valve_Sun_am_0=on&v"
@@ -47,7 +50,7 @@ const char testbody[] =
     "7=on&valve_Thu_am_7=on&valve_Thu_pm_7=on&valve_Fri_am_7=on&v"
     "alve_Fri_pm_7=on&valve_Sat_am_7=on&valve_Sat_pm_7=on&valve_S"
     "un_am_7=on&valve_Sun_pm_7=on&Save=Save";
-
+#endif
 
 
 //TEST(HeaderTest,ParseBody)
