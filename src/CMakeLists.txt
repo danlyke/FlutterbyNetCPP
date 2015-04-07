@@ -121,6 +121,8 @@ target_link_libraries (example_irrigationcontrol LINK_PUBLIC fby sqlite3 pq boos
 
 
 
+
+
 add_custom_command( OUTPUT sqldefinitions.cpp sqldefinitions.h sqldefinitions.sql
   COMMAND sqlextractor ARGS ${CMAKE_CURRENT_SOURCE_DIR}/wikiobjects.h
   MAIN_DEPENDENCY wikiobjects.h
@@ -187,10 +189,10 @@ add_executable(test_parsehtml test_parsehtml.cpp)
 target_link_libraries (test_parsehtml LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(test_nethttpheaders test_nethttpheaders.cpp)
-target_link_libraries (test_nethttpheaders LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
+target_link_libraries (test_nethttpheaders LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(test_bodyparse test_bodyparse.cpp)
-target_link_libraries (test_bodyparse LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
+target_link_libraries (test_bodyparse LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 install (TARGETS fby DESTINATION lib)
 install (FILES

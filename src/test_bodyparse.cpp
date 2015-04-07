@@ -1,9 +1,11 @@
 #include "fby.h"
 #include "fbynet.h"
 #include "fbyregex.h"
+#include <gtest/gtest.h>
 
 #include <string>
 using namespace std;
+using namespace FbyHelpers;
 
 
 const char testbody[] =
@@ -48,16 +50,163 @@ const char testbody[] =
 
 
 
-int main(int argc, char **argv)
+//TEST(HeaderTest,ParseBody)
+int main(int, char **)
 {
-    BodyParserURLEncodedPtr parseptr(new BodyParserURLEncoded);
-    parse.onNameValue(
-        [](const std::string &name, const std::string &value)
-        {
-            cout << "Got " << name << ": '" << value << "'" << endl;
-        });
-    parse.on_data(testbody, sizeof(testbody));
-    parse.on_end();
-    return 0;
 
+    BodyParserURLEncodedPtr parseptr(new BodyParserURLEncoded);
+    map<string,string> namevaluepairs;
+
+    parseptr->onNameValue(
+        [&namevaluepairs](const std::string &name, const std::string &value)
+        {
+            namevaluepairs[name] = value;
+            cout << "Found " << name << ": '" << value << "'" << endl;
+        });
+    size_t blocksize = 1;
+    size_t start = 0;
+    size_t length = sizeof(testbody) - 1;
+
+    while (length)
+    {
+        if (blocksize > length)
+            blocksize = length;
+        parseptr->on_data(testbody + start, blocksize);
+        start += blocksize;
+        length -= blocksize;
+        ++blocksize;
+    }
+    parseptr->on_end();
+
+//     EXPECT_EQ(namevaluepairs["start_time_1"], string("5:00"));
+//     EXPECT_EQ(namevaluepairs["start_time_2"], string("20:00"));
+//     EXPECT_EQ(namevaluepairs["name_0"], string("Valve+1"));
+//     EXPECT_EQ(namevaluepairs["time_0"], string("1"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_am_0"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_pm_0"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_am_0"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_pm_0"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_am_0"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_pm_0"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_am_0"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_pm_0"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_am_0"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_pm_0"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_am_0"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_pm_0"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_am_0"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_pm_0"], string("on"));
+//     EXPECT_EQ(namevaluepairs["name_1"], string("Valve+2"));
+//     EXPECT_EQ(namevaluepairs["time_1"], string("2"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_am_1"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_pm_1"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_am_1"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_pm_1"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_am_1"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_pm_1"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_am_1"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_pm_1"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_am_1"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_pm_1"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_am_1"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_pm_1"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_am_1"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_pm_1"], string("on"));
+//     EXPECT_EQ(namevaluepairs["name_2"], string("Valve+3"));
+//     EXPECT_EQ(namevaluepairs["time_2"], string("3"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_am_2"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_pm_2"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_am_2"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_pm_2"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_am_2"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_pm_2"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_am_2"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_pm_2"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_am_2"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_pm_2"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_am_2"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_pm_2"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_am_2"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_pm_2"], string("on"));
+//     EXPECT_EQ(namevaluepairs["name_3"], string("Valve+4"));
+//     EXPECT_EQ(namevaluepairs["time_3"], string("4"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_am_3"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_pm_3"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_am_3"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_pm_3"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_am_3"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_pm_3"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_am_3"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_pm_3"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_am_3"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_pm_3"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_am_3"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_pm_3"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_am_3"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_pm_3"], string("on"));
+//     EXPECT_EQ(namevaluepairs["name_4"], string("Valve+5"));
+//     EXPECT_EQ(namevaluepairs["time_4"], string("5"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_am_4"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_pm_4"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_am_4"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_pm_4"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_am_4"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_pm_4"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_am_4"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_pm_4"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_am_4"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_pm_4"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_am_4"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_pm_4"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_am_4"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_pm_4"], string("on"));
+//     EXPECT_EQ(namevaluepairs["name_5"], string("Valve+6"));
+//     EXPECT_EQ(namevaluepairs["time_5"], string("6"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_am_5"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_pm_5"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_am_5"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_pm_5"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_am_5"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_pm_5"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_am_5"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_pm_5"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_am_5"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_pm_5"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_am_5"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_pm_5"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_am_5"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_pm_5"], string("on"));
+//     EXPECT_EQ(namevaluepairs["name_6"], string("Valve+7"));
+//     EXPECT_EQ(namevaluepairs["time_6"], string("7"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_am_6"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_pm_6"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_am_6"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_pm_6"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_am_6"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_pm_6"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_am_6"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_pm_6"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_am_6"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_pm_6"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_am_6"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_pm_6"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_am_6"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_pm_6"], string("on"));
+//     EXPECT_EQ(namevaluepairs["name_7"], string("Valve+8"));
+//     EXPECT_EQ(namevaluepairs["time_7"], string("8"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_am_7"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Mon_pm_7"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_am_7"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Tue_pm_7"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_am_7"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Wed_pm_7"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_am_7"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Thu_pm_7"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_am_7"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Fri_pm_7"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_am_7"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sat_pm_7"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_am_7"], string("on"));
+//     EXPECT_EQ(namevaluepairs["valve_Sun_pm_7"], string("on"));
+//     EXPECT_EQ(namevaluepairs["Save"], string("Save"));
 }
