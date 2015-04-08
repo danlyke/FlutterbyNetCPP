@@ -5,7 +5,7 @@
 using namespace std;
 
 
-int main(int argc, char **argv)
+int main(int /* argc */, char ** /* argv */, char ** /* env */)
 {
     map<string,string> vars;
     vars["hello"] = string("is it me you're looking for?");
