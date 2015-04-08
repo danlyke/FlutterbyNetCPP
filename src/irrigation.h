@@ -17,6 +17,7 @@ public:
     
 
     Valve();
+    Valve(int valve_num);
     void TurnOff();
     void TurnOn();
 };

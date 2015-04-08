@@ -13,8 +13,23 @@ Valve::Valve()
 {
 }
 
+Valve::Valve(int valve_num)
+ : 
+    BaseObj(BASEOBJINIT(Valve)),
+    name("Valve "), valve_num(valve_num), run_time(0), remaining_run_time(0), days(0),timer()
+{
+    char ch[2];
+    if (valve_num >= 0 && valve_num <= 9)
+    {
+        ch[0] = '0' + valve_num;
+        ch[1] = '\0';
+        name += ch;
+    }
+}
+
 void Valve::TurnOff()
 {
+    remaining_run_time = 0;
     cout << "Turning off valve " << valve_num << endl;
 }
 void Valve::TurnOn()

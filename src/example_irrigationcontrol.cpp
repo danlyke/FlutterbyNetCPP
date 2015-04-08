@@ -1,5 +1,6 @@
 #include "fbynet.h"
 #include "fbyregex.h"
+#include "fbystring.h"
 
 #include <string>
 
@@ -8,12 +9,15 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sstream>
-
+#include <ostream>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
 
 #include "irrigation.h"
 
 using namespace std;
 
+string configFileName("irrigationcontrol.ini");
 
 const char htmlHeaderStuff[] =
     "<html>\n"
@@ -88,34 +92,115 @@ string ValveHTML(ValvePtr valve)
         }
         ss << "/></td>";
     }
-    ss << "<td><a href=\"/start/" << valve->valve_num << "\">Start</a></td>";
+    ss << "<td><a href=\"/";
+    ss << (valve->remaining_run_time ? "stop" : "start");
+    ss << "/" << valve->valve_num << "\">";
+    ss << (valve->remaining_run_time ? "stop" : "start");;
+    ss << "</a></td>";
     ss << "</tr>\n\n";
     return ss.str();
 }
 
 
-int main(int argc, char **argv)
+void writeFiles(vector<ValvePtr> valves)
+{
+    string configFileNameBackup(configFileName + ".bak");
+    rename(configFileName.c_str(), configFileNameBackup.c_str());
+    ofstream configFile(configFileName);
+    configFile << "[Main]" << endl;
+    configFile << "start_time_1=" << startTime1 << endl;
+    configFile << "start_time_2=" << startTime2 << endl;
+
+    for (auto valve : valves)
+    {
+        configFile << "[Valve" << valve->valve_num << "]" << endl;
+        configFile << "name=" << valve->name << endl;
+        configFile << "valve_num=" << valve->valve_num << endl;
+        configFile << "run_time=" << valve->run_time << endl;
+        configFile << "days=" << valve->days << endl;
+    }
+}
+
+
+Regex regexStart("^/start/(\\d+)");
+Regex regexStop("^/stop/(\\d+)");
+
+
+int main(int /* argc */, char ** /* argv */)
 {
     Net *net = new Net();
     vector<ValvePtr> valves;
+
+    using boost::property_tree::ptree;
+    ptree pt;
+    try {
+        read_ini(configFileName, pt);
+    } catch(std::exception const&  ex)
+    {
+    }
+
     for (int i = 0; i < 8; ++i)
     {
         ValvePtr valve(new Valve);
-        valve->name = "Valve " + to_string(i + 1);
+        valve->name = "Valve " + to_string(i);
         valve->valve_num = i;
-        valve->run_time = 1 + i;
+        valve->run_time = 1;
         valve->days = -1;
         valves.push_back(valve);
     }
 
-    Regex regexStart("^/start/(\\d+)");
+    for (auto &section :pt)
+    {
+        if (startswith(section.first, "Valve"))
+        {
+            string valveStr(section.first);
+            int valveNum = valveStr[5] - '0';
+            ValvePtr valve(valves[valveNum]);
+            valve->valve_num = valveNum;
 
-    net->createServer([valves,&regexStart,net](SocketPtr socket)
+            for (auto& key : section.second)
+            {
+                if (key.first == "name")
+                {
+                    valve->name = key.second.get_value<std::string>();
+                }
+                if (key.first == "valve_num")
+                {
+                    valve->valve_num = key.second.get_value<int>();
+                }
+                if (key.first == "run_time")
+                {
+                    valve->run_time = key.second.get_value<int>();
+                }
+                if (key.first == "days")
+                {
+                    valve->days = key.second.get_value<int>();
+                }
+            }
+        }
+        if (startswith(section.first, "Main"))
+        {
+            for (auto& key : section.second)
+            {
+                if (key.first == "start_time_1")
+                {
+                    startTime1 = key.second.get_value<string>();
+                }
+                if (key.first == "start_time_2")
+                {
+                    startTime2 = key.second.get_value<string>();
+                }
+            }
+        }
+    }
+
+
+    net->createServer([valves,net](SocketPtr socket)
                      {
                          HTTPRequestBuilderPtr requestBuilder
                              (new HTTPRequestBuilder
                               (socket,
-                               [valves,&regexStart,net](HTTPRequestPtr request, HTTPResponsePtr response)
+                               [valves,net](HTTPRequestPtr request, HTTPResponsePtr response)
                                {
                                    RegexMatch match; 
                                    for (auto v = request->headers.begin();
@@ -136,10 +221,14 @@ int main(int argc, char **argv)
                                                                  });
 
                                            request->onData([parseptr](const char *data, size_t length)
-                                                            { parseptr->on_data(data,length); });
+                                                            {
+                                                                cout << "Got data " << length << endl;
+                                                                parseptr->on_data(data,length);
+                                                            });
 
                                            request->onEnd([parseptr, nvpptr, valves, response]()
                                                            {
+                                                               cout << "Processing request onEnd" << endl;
                                                                for (auto valve : valves)
                                                                {
                                                                    char valveIdch[2];
@@ -192,7 +281,9 @@ int main(int argc, char **argv)
                                                                if (value != nvpptr->nvp.end())
                                                                { startTime2 = value->second; }
 
-                                                               response->redirect("/");
+                                                               response->redirect("/"); 
+                                                               response->end("");
+                                                               writeFiles(valves);
                                                            });
                                            
                                        }
@@ -242,6 +333,18 @@ int main(int argc, char **argv)
                                                    },
                                                    valve_interval * 1000
                                                    );
+                                       }
+                                       response->redirect("/");
+                                   }
+                                   else if (regexStop.Match(request->path, match))
+                                   {
+                                       cout << "Converting " << match.Match(1) << endl;
+                                       size_t valve_num = stol(match.Match(1));
+                                       if (valve_num < valves.size())
+                                       {
+                                           auto valve = valves[valve_num];
+                                           valve->TurnOff();
+                                           net->clearInterval(valve->timer);
                                        }
                                        response->redirect("/");
                                    }
