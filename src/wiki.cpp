@@ -1116,7 +1116,7 @@ bool EndTagShouldBeSuppressed(const string &name)
 
 void HTMLOutputterString::AddHTMLNodeBegin(const string &name,
                                            const vector< pair<string,string> > & attributes,
-                                           bool empty_node)
+                                           bool /* empty_node */)
 {
     os <<  "<" << name;
     if (!attributes.empty())
