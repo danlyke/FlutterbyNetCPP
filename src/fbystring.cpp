@@ -120,3 +120,11 @@ bool endswith(const std::string &s, const std::string &with)
     return false;
 }
 
+bool startswith(const std::string &s, const std::string &with)
+{
+    if (s.length() >= with.length()) {
+        return (0 == s.compare(0, with.length(), with));
+    }
+    return false;
+}
+

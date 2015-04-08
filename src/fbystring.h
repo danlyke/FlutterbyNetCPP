@@ -25,5 +25,6 @@ std::string ConvertImageNameToDescription(const std::string &name);
 std::string HTMLQuote(const std::string &s);
 
 bool endswith(const std::string &s, const std::string &with);
+bool startswith(const std::string &s, const std::string &with);
 
 #endif /* #ifndef STRINGUTIL_H_INCLUDED */
