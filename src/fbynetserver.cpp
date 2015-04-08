@@ -879,6 +879,7 @@ void HTTPRequestBuilder::ReadHTTPRequestBuilderData(const char **data, size_t &l
     {
         request->on_data(*data, length);
         *data += length;
+        content_length -= length;
         length = 0;
     }
     else
@@ -887,6 +888,7 @@ void HTTPRequestBuilder::ReadHTTPRequestBuilderData(const char **data, size_t &l
         request->on_end();
         *data += content_length;
         length -= content_length;
+        content_length = 0;
         readState = &HTTPRequestBuilder::ReadResetReadState;
      }
 }
@@ -943,14 +945,15 @@ HTTPRequestBuilder::HTTPRequestBuilder(SocketPtr socket,
 
 HTTPRequest::HTTPRequest() :
     BaseObj(BASEOBJINIT(HTTPRequest)),
+    on_data([](const char *, size_t){}),
+    on_end(),
     method(),
     path(),
     protocol(),
-    on_data([](const char *, size_t){}),
-    on_end(),
     headers()
 {
 }
+
 
 
 
@@ -1040,12 +1043,12 @@ bool ServeFile(const char * fileRoot, HTTPRequestPtr request, HTTPResponsePtr re
 
 BodyParserURLEncoded::BodyParserURLEncoded()
     :
+    BaseObj(BASEOBJINIT(BodyParserURLEncoded)),
     readState(&BodyParserURLEncoded::ReadName),
     name(),
     value(),
     entity(-1),
-    on_name_value([](const std::string &, const std::string &){}),
-    BaseObj(BASEOBJINIT(BodyParserURLEncoded))
+    on_name_value([](const std::string &, const std::string &){})
 
 {
 }
@@ -1124,7 +1127,7 @@ int BodyParserURLEncoded::ReadDataAsHexDigit(const char **data, size_t &length)
     return result;
 }
 
-void BodyParserURLEncoded::ReadNamePlusSpace(const char **data, size_t &length)
+void BodyParserURLEncoded::ReadNamePlusSpace(const char ** /* data */, size_t & /* length */)
 {
     name.append(" ");
     readState = &BodyParserURLEncoded::ReadName;
@@ -1186,7 +1189,7 @@ void BodyParserURLEncoded::ReadValue(const char **data, size_t &length)
     }
 }
 
-void BodyParserURLEncoded::ReadValuePlusSpace(const char **data, size_t &length)
+void BodyParserURLEncoded::ReadValuePlusSpace(const char ** /* data */, size_t & /* length */)
 {
     value.append(" ");
     readState = &BodyParserURLEncoded::ReadValue;
