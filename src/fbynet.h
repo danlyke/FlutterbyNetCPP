@@ -116,19 +116,17 @@ FBYCLASS(IntervalTimeoutObject) : public ::FbyHelpers::BaseObj
 private:
      std::function<void ()> triggered_function;
      bool stillNeedsEvents;
-     bool recurring;
-     long microseconds;
+     long microsecondsRecurring;
      long next_time;
 public:
 IntervalTimeoutObject(std::function<void()> triggered_function,
-                      bool recurring, long microseconds, const char *name, int size)
+                      long microsecondsStart, long microsecondsRecurring, const char *name, int size)
     :
     BaseObj(name,size),
         triggered_function(triggered_function),
         stillNeedsEvents(true),
-        recurring(recurring),
-        microseconds(microseconds),
-        next_time(microseconds)
+        microsecondsRecurring(microsecondsRecurring),
+        next_time(microsecondsStart)
     {}
     void unref() { stillNeedsEvents = false; }
     void ref() { stillNeedsEvents = true; }
@@ -142,7 +140,8 @@ FBYCLASS(TimeoutObject) : public IntervalTimeoutObject
 public:
 TimeoutObject(std::function<void()> triggered_function,
               long microseconds) : IntervalTimeoutObject(triggered_function,
-                                                         false, microseconds, BASEOBJINIT(TimeoutObject))
+                                                         microseconds, 0,
+                                                         BASEOBJINIT(TimeoutObject))
     {}
 };
 
@@ -153,9 +152,17 @@ FBYCLASS(IntervalObject) : public IntervalTimeoutObject
 public:
 IntervalObject(std::function<void()> triggered_function,
                long microseconds) : IntervalTimeoutObject(triggered_function,
-                                                          true, microseconds, BASEOBJINIT(IntervalObject))
+                                                          microseconds, microseconds,
+                                                          BASEOBJINIT(IntervalObject))
+    {}
+IntervalObject(std::function<void()> triggered_function,
+               long microsecondsStart, long microsecondsRecurring) :
+    IntervalTimeoutObject(triggered_function,
+                          microsecondsStart,
+                          microsecondsRecurring, BASEOBJINIT(IntervalObject))
     {}
 };
+
 
 FBYCLASSPTR(ImmediateObject);
 FBYCLASS(ImmediateObject) : public IntervalTimeoutObject
@@ -164,7 +171,7 @@ FBYCLASS(ImmediateObject) : public IntervalTimeoutObject
 public:
 ImmediateObject(std::function<void()> triggered_function)
     : IntervalTimeoutObject(triggered_function,
-                            false, 0, BASEOBJINIT(ImmediateObject))
+                            0, 0, BASEOBJINIT(ImmediateObject))
     {}
 };
 
@@ -206,8 +213,18 @@ public:
     IntervalObjectPtr setInterval(std::function<void ()> callback,int delay_ms)
     {
         IntervalObjectPtr timeout(new IntervalObject(
-                                     callback,
-                                     delay_ms));
+                                      callback,
+                                      delay_ms,
+                                      delay_ms));
+        timers.push_back(timeout);
+        return timeout;
+    }
+    IntervalObjectPtr setInterval(std::function<void ()> callback,int delay_ms, int recurring_ms)
+    {
+        IntervalObjectPtr timeout(new IntervalObject(
+                                      callback,
+                                      delay_ms,
+                                      recurring_ms));
         timers.push_back(timeout);
         return timeout;
     }

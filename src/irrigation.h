@@ -3,10 +3,14 @@
 #include "fby.h"
 #include "fbynet.h"
 
+bool StartFTDI();
+void SetFTDI(int bit);
+void StopFTDI();
+
 extern std::string startTime1;
 extern std::string startTime2;
 FBYCLASSPTR(Valve);
-FBYCLASS(Valve) : public FbyHelpers::BaseObj {
+FBYCLASS(Valve) : public ::FbyHelpers::BaseObj {
 public:
     std::string name;
     int valve_num;
@@ -14,12 +18,12 @@ public:
     int remaining_run_time;
     int days;
     IntervalObjectPtr timer;
-    
 
     Valve();
     Valve(int valve_num);
-    void TurnOff();
-    void TurnOn();
+    void TurnOff(NetPtr);
+    void TurnOn(NetPtr);
 };
+
 
 #endif /* #ifndef IRRIGATION_H_INCLUDED */

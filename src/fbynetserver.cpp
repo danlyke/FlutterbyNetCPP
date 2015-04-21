@@ -140,7 +140,7 @@ bool Socket::write(char const *data, size_t size)
             emitDrain = true;
         }
     }
-    else
+    else if (bytes_written < 0 || size)
     {
         perror("Error writing");
     }
@@ -516,9 +516,9 @@ Net::loop()
             if (timer->next_time <= elapsed_microseconds)
             {
                 timer->triggered_function();
-                if (timer->recurring)
+                if (timer->microsecondsRecurring)
                 {
-                    timer->next_time += timer->microseconds;
+                    timer->next_time += timer->microsecondsRecurring;
                 }
                 else
                 {

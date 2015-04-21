@@ -56,6 +56,9 @@ target_link_libraries (sqlextractor LINK_PUBLIC fby boost_filesystem boost_syste
 add_executable(test_image_name_decomposition test_image_name_decomposition.cpp)
 target_link_libraries (test_image_name_decomposition LINK_PUBLIC fby boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
 
+add_executable(test_time test_time.cpp)
+target_link_libraries (test_time LINK_PUBLIC fby boost_program_options cgicc /home/danlyke/lib/libgtest.a pthread)
+
 add_executable(test_lib test_lib.cpp)
 target_link_libraries (test_lib LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
@@ -119,10 +122,10 @@ target_link_libraries (example_httpserver LINK_PUBLIC fby sqlite3 pq boost_files
 
 
 add_executable(example_irrigationcontrol example_irrigationcontrol.cpp irrigation.cpp)
-target_link_libraries (example_irrigationcontrol LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
+target_link_libraries (example_irrigationcontrol LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc ftdi /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 
-add_executable(example_inifiles example_inifiles.cpp irrigation.cpp)
+add_executable(example_inifiles example_inifiles.cpp)
 target_link_libraries (example_inifiles LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 
