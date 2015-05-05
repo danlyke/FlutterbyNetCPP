@@ -27,10 +27,11 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ../bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
 
 
-FIND_LIBRARY(FBY_LIBRARY fby /home/danlyke/lib)
 #FIND_LIBRARY(GTEST_LIBRARY gtest /home/danlyke/lib)
 #TARGET_LINK_LIBRARIES(testOVAS ${GTEST_LIBRARY})
-LINK_DIRECTORIES( ${LINK_DIRECTORIES} /home/danyke/lib)
+#add_library( fby STATIC IMPORTED )
+
+LINK_DIRECTORIES( ${LINK_DIRECTORIES} $ENV{HOME}/lib)
 include_directories($ENV{HOME}/include)
 
 # target_link_libraries(fby LINK_PUBLIC sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams )
@@ -57,10 +58,10 @@ add_executable(test_microformats test_microformats.cpp)
 target_link_libraries (test_microformats LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(test_lib test_lib.cpp)
-target_link_libraries (test_microformats LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
+target_link_libraries (test_lib LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(test_fbydb test_fbydb.cpp)
-target_link_libraries (test_fbydb LINK_PUBLIC fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
+target_link_libraries (test_fbydb LINK_PUBLIC fby fbywiki sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
 add_executable(fby_test fby_test.cpp)
 target_link_libraries (fby_test LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
