@@ -51,13 +51,13 @@ const char testbody[] =
 int main(int argc, char **argv)
 {
     BodyParserURLEncodedPtr parseptr(new BodyParserURLEncoded);
-    parse.onNameValue(
+    parseptr->onNameValue(
         [](const std::string &name, const std::string &value)
         {
             cout << "Got " << name << ": '" << value << "'" << endl;
         });
-    parse.on_data(testbody, sizeof(testbody));
-    parse.on_end();
+    parseptr->on_data(testbody, sizeof(testbody));
+    parseptr->on_end();
     return 0;
 
 }
