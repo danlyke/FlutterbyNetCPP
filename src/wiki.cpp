@@ -1131,56 +1131,7 @@ void Wiki::GetImageHTML(ostream &os,
     }
 }
 
-HTMLOutputterString::HTMLOutputterString(ostream &os)
-    : HTMLOutputter(),
-      os(os)
-{
-}
 
-void HTMLOutputterString::AddString(const string &s)
-{
-    os << s;
-}
-
-
-bool EndTagShouldBeSuppressed(const string &name)
-{
-  return (name == "img") || (name == "br");
-}
-
-void HTMLOutputterString::AddHTMLNodeBegin(const string &name,
-                                           const vector< pair<string,string> > & attributes,
-                                           bool empty_node)
-{
-    os <<  "<" << name;
-    if (!attributes.empty())
-    {
-        for (auto attr = attributes.begin();
-             attr != attributes.end(); ++ attr)
-        {
-            os <<  " " << attr->first << "=\"" << attr->second << "\"";
-        }
-    }
-    //   if (empty_node)
-    // os <<  "/";
-    os <<  ">";
-}
-
-void HTMLOutputterString::AddHTMLNodeEnd(const string &name)
-{
-    if (!EndTagShouldBeSuppressed(name))
-        os <<  "</" << name << ">";
-    if (name == "p") os << endl << endl;
-    if (name == "li") os << endl;
-    if (name == "ul") os << endl;
-    if (name == "ol") os << endl;
-    if (name == "blockquote") os << endl;
-}
-void HTMLOutputterString::AddWikiLink(const string &wikiname,
-                                      const string &text)
-{
-    os <<  "<a href=\"./" << wikiname << "\">" << text << "</a>";
-}
 
 void Wiki::LoadDPLEntries(vector<WikiEntryPtr> & entries,
                           const string &category,
@@ -1243,10 +1194,6 @@ void HTMLOutputterWikiString::AddWikiLink(const string &wikiname,
             os << "<cite>" << text << "</cite>";
         }
     }
-}
-
-HTMLOutputterString::~HTMLOutputterString()
-{
 }
 
 

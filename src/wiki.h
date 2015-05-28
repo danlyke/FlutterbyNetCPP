@@ -3,6 +3,7 @@
 
 #include "fbydb.h"
 #include "fbyparsetree.h"
+#include "fbytreebuilder.h"
 #include "wikiobjects.h"
 
 FBYCLASSPTR(WikiDB);
@@ -112,17 +113,6 @@ private:
     string google_maps_api_key;
 };
 
-class HTMLOutputterString : public HTMLOutputter {
-protected:
-    std::ostream &os;
-public:
-    HTMLOutputterString(ostream &os);
-    virtual void AddString(const string &s);
-    virtual void AddHTMLNodeBegin(const string &name, const vector< pair<string,string> > & attributes, bool empty_node);
-    virtual void AddHTMLNodeEnd(const string &name);
-    virtual void AddWikiLink(const string &wikiname, const string &text);
-    virtual ~HTMLOutputterString();
-};
 
 class HTMLOutputterWikiString : public HTMLOutputterString  {
 private:

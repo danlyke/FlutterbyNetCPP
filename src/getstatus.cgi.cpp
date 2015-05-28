@@ -51,7 +51,7 @@ const char *html_header =
 
 
 
-int main(int argc, char**argv, char **env)
+int main(int /* argc */, char ** /* argv */, char ** /* env */)
 {
     FbyDBPtr db(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke' host='localhost'"));
     int limit = 50;

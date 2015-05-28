@@ -56,7 +56,7 @@ const char *html_header =
     "\n";
 
 
-int main(int argc, char**argv, char **env)
+int main(int /* argc */, char ** /* argv */, char ** /* env */)
 {
      FbyDBPtr db(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke' host='localhost' "));
     cgicc::Cgicc cgi;
@@ -84,7 +84,6 @@ int main(int argc, char**argv, char **env)
     if ((!param_status.empty()) && !person_id.empty())
     {
         bool needsrebuild(false);
-
         string imagename(cgi("photoname"));
         auto ufh(cgi.getFile("photofile"));
 
