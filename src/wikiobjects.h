@@ -110,6 +110,7 @@ Image() : FbyORM(BASEOBJINIT(Image)),
 public :
    ImageInstancePtr Fullsize(FbyDBPtr);
    ImageInstancePtr Thumb(FbyDBPtr);
+   ImageInstancePtr Medium(FbyDBPtr);
    ImageInstancePtr LightboxZoom(FbyDBPtr);
    bool HasInstances(FbyDBPtr);
    ImageInstancePtr Original(FbyDBPtr);

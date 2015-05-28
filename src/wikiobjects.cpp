@@ -62,6 +62,18 @@ ImageInstancePtr Image::Thumb(FbyDBPtr db)
     return ImageInstancePtr();
 }
 
+ImageInstancePtr Image::Medium(FbyDBPtr db)
+{
+    if (LoadInstances(db))
+    {
+        if (instances.size() > 1)
+            return instances[1];
+        else
+            return instances[0];
+    }
+    return ImageInstancePtr();
+}
+
 ImageInstancePtr Image::LightboxZoom(FbyDBPtr db)
 {
     return Fullsize(db);

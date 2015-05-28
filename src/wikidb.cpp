@@ -99,6 +99,11 @@ ImageInstancePtr WikiDB::ImageInstanceThumb(ImagePtr image)
     return image->Thumb(db);
 }
 
+ImageInstancePtr WikiDB::ImageInstanceMedium(ImagePtr image)
+{
+    return image->Medium(db);
+}
+
 
 ImageInstancePtr WikiDB::ImageInstanceLightboxZoom(ImagePtr image)
 {

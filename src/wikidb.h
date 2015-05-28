@@ -31,6 +31,7 @@ WikiDB(FbyDBPtr db) : BaseObj(BASEOBJINIT(WikiDB)), db(db), debug_output(false) 
     bool LoadImageInstance(ImageInstancePtr &imageInstance, const string &imagepath);
     ImageInstancePtr ImageInstanceFullsize(ImagePtr image);
     ImageInstancePtr ImageInstanceThumb(ImagePtr image);
+    ImageInstancePtr ImageInstanceMedium(ImagePtr image);
     ImageInstancePtr ImageInstanceLightboxZoom(ImagePtr image);
     ImageInstancePtr ImageInstanceOriginal(ImagePtr image);
     bool LoadOrCreateImageInstance(ImageInstancePtr &imageInstance, const string &imagepath);
