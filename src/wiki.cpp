@@ -370,12 +370,13 @@ void Wiki::LoadPNGData(const std::string &imagepath)
 
     pos = filename.rfind('.');
     if (pos != string::npos
-        && !strcasecmp(filename.c_str() + pos, ".jpg"))
+        && !strcasecmp(filename.c_str() + pos, ".png"))
     {
         string wikiname(filename);
-//        int width = -1, height = -1;
-//        cout << "Wiki name Image:" << wikiname << endl;
-//        FindPNGSize(filename, width, height);
+        int width = -1, height = -1;
+        cout << "Wiki name Image:" << wikiname << endl;
+        map<string,string> attributes;
+        FindPNGSize(filename, width, height, attributes);
     }
 }
 
@@ -972,6 +973,17 @@ void Wiki::GetImageHTML(ostream &os,
                 }
             }
         }
+        else if (*note == "medium" && hasImage)
+        {
+            if (wikidb->ImageHasInstances(img))
+            {
+                ImageInstancePtr instance(wikidb->ImageInstanceMedium(img));
+                if (FBYTYPEDNULL(ImageInstancePtr) != instance)
+                {
+                    imginstances.push_back(instance);
+                }
+            }
+        }
         else if (*note == "full" && hasImage)
         {
             if (wikidb->ImageHasInstances(img))
@@ -1087,11 +1099,33 @@ void Wiki::GetImageHTML(ostream &os,
                 os << "<span class=\"imagezoombox\">&nbsp;</span></a>\n";
             }
         }
-        if (!caption.empty())
+        if (!desc.empty())
         {
-            os << "<span class=\"imagecaption\"><p class=\"imagecaption\">";
-            os << caption;
-            os << "</p></span>";
+            os << "<span class=\"imagecaption\">";
+            TreeBuilderWiki treeBuilder(google_maps_api_key, wikidb);
+            stringstream ss;
+            MarkedUpTextParser treeParser;
+            treeParser.Parse(treeBuilder,desc.c_str(), desc.size());
+            HTMLOutputterWikiString outputter(ss, WikiPtr(this),  string("Random Name"));
+            treeBuilder.AsHTML(outputter);
+
+            string deschtml(ss.str());
+            size_t s;
+            s = deschtml.find("<p>");
+            if (s != string::npos)
+            {
+                deschtml.erase(0,s+3);
+            }
+            s = deschtml.rfind("</p>");
+            if (s != string::npos)
+            {
+                size_t ss = deschtml.rfind("</p>", s);
+                if (ss != string::npos)
+                    s = ss;
+                deschtml.erase(s, string::npos);
+            }
+            os << deschtml;
+            os << "</span>";
         }
         os << "</span>";
     }
