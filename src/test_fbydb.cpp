@@ -50,22 +50,14 @@ int main(int /* argc */, const char * const * /* argv */)
     FbyDBPtr db(FBYNEW FbySQLiteDB("../var/fby.sqlite3") );
     cout << "About to load" << endl;
 
-#if 1
-    DYNARRAY(WikiEntryPtr) data;
+    vector<WikiEntryPtr> data;
     db->Load(data, "SELECT * FROM WikiEntry");
-#elif 0
-    DYNARRAY(FbyORMPtr) data = db->Load([](){ return FbyORMPtr(FBYNEW WikiEntry()); }, "SELECT * FROM WikiEntry");
-#else
-    DYNARRAY(WikiEntryPtr) data;
-    db->CastCopyArray(db->Load([](){ return FbyORMPtr(FBYNEW WikiEntry()); }, "SELECT * FROM WikiEntry"), data);
-#endif
 
     for (int pass = 0; pass < 2; ++pass)
     {
-        for (int i = 0; i < data->Count; ++i)
+        for (int i = 0; i < data.size(); ++i)
         {
-            FbyORMPtr obj = data[i];
-            WikiEntryPtr we(dynamic_cast<WikiEntry *>(&*obj));
+            WikiEntryPtr we(data[i]);
             cout << we->inputname << " and " << we->wikiname << endl;
             cout << "    " << we->needsContentRebuild << " " << we->needsExternalRebuild << endl;
 
