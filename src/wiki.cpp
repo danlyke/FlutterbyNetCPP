@@ -374,7 +374,6 @@ void Wiki::LoadPNGData(const std::string &imagepath)
     {
         string wikiname(filename);
         int width = -1, height = -1;
-        cout << "Wiki name Image:" << wikiname << endl;
         map<string,string> attributes;
         FindPNGSize(filename, width, height, attributes);
     }
@@ -501,7 +500,7 @@ void Wiki::ScanWikiFilesForLinks(const char *inputDir, const char * /* stagingDi
 
 string Wiki::LoadWikiText(WikiEntryPtr wikiEntry)
 {
-    string fileContents;
+    stringstream fileContents;
     if (debug_output)
         cout << "Attempting to load file text for '" << wikiEntry->wikiname << "'" << endl;
 
@@ -518,52 +517,105 @@ string Wiki::LoadWikiText(WikiEntryPtr wikiEntry)
                 ImageInstancePtr thumb(wikidb->ImageInstanceThumb(image));
                 ImageInstancePtr original(wikidb->ImageInstanceOriginal(image));
                 
-                fileContents += "== ";
-                fileContents += ConvertImageNameToDescription(imagename);
-                fileContents += " ==\n\n";
-                fileContents += "<img src=\"" + WebPathFromFilename(fullsize->filename)
+                fileContents <<  "== ";
+                fileContents <<  ConvertImageNameToDescription(imagename);
+                fileContents <<  " ==\n\n";
+                fileContents <<  "<img src=\"" + WebPathFromFilename(fullsize->filename)
                     + "\" width=\"" + to_string(fullsize->width)
                     + "\" height=\"" + to_string(fullsize->height)
                     + "\" >\n\n";
 
                 vector<ImageInstancePtr> instances = wikidb->ImageInstances(image);
 
-                fileContents += "All sizes: ";
+                fileContents <<  "All sizes: ";
                 for (auto instance = instances.begin();
                      instance != instances.end();
                      ++instance)
                 {
                     if (instance != instances.begin())
-                        fileContents += " | ";
+                        fileContents <<  " | ";
 
-                    fileContents +=  "<a href=\"" + WebPathFromFilename((*instance)->filename)
-                        + "\">" + to_string((*instance)->width)
-                        + "x" + to_string((*instance)->height)
-                    + "</a>";
+                    fileContents <<   "<a href=\"" << WebPathFromFilename((*instance)->filename)
+                                 << "\">" << to_string((*instance)->width)
+                                 << "x" << to_string((*instance)->height)
+                                 << "</a>";
 
                 }
-                fileContents += "\n\n";
+                fileContents <<  "\n\n";
 
 
                 int width(0), height(0);
+                float longitude(FLT_MAX), latitude(FLT_MAX);
+
                 map<string,string> attributes;
                 if (FindJPEGSize(original->filename, width, height, attributes))
                 {
-                    fileContents += "<ul>";
+                    fileContents <<  "<ul>";
                     for (auto attr = attributes.begin(); attr != attributes.end(); ++attr)
                     {
-                        fileContents += "<li><em>" + attr->first + "</em> : " + attr->second + "</li>\n";
+                        static Regex regexLatLonParseDMS("LatLonParse",
+                                                         "([NSEW])\\s+(\\d+)d\\s+(\\d+)m\\s+(\\d+(\\.\\d+)?)s");
+                        RegexMatch match;
+                        if (attr->first == "GPS Latitude"
+                            && regexLatLonParseDMS.Match(attr->second, match))
+                        {
+                            latitude = stof(match.Match(2))
+                                + stof(match.Match(3)) / 60.0
+                                + stof(match.Match(4)) / (3600.0);
+                            if (match.Match(1) == "S")
+                                latitude = -latitude;
+                        }
+                        if (attr->first == "GPS Longitude"
+                            && regexLatLonParseDMS.Match(attr->second, match))
+                        {
+                            longitude = stof(match.Match(2))
+                                + stof(match.Match(3)) / 60.0
+                                + stof(match.Match(4)) / (3600.0);
+                            if (match.Match(1) == "W")
+                                longitude = -longitude;
+                        }
+                        
+                        fileContents <<  "<li><em>" + attr->first + "</em> : " + attr->second + "</li>\n";
                     }
-                    fileContents += "</ul>\n";
+                    fileContents <<  "</ul>\n";
                 }
+
 
                 vector<StatusUpdatePtr> statuses;
                 wikidb->LoadStatusUpdatesForImage(statuses, imagename);
-                for (auto status = statuses.begin();
-                     status != statuses.end();
-                     ++status)
+                for (auto status : statuses)
                 {
-                    fileContents += "\n\n" + (*status)->status + "\n\n";
+                    fileContents <<  "\n\n" + status->status + "\n\n";
+                    if (latitude == FLT_MAX
+                        || longitude == FLT_MAX)
+                    {
+                        if (status->locationset
+                            && status->latitude <= 90.0
+                            && status->latitude >= -90.0
+                            && status->longitude <= 180.0
+                            && status->longitude >= -180.0
+                            && status->latitude != 0.0
+                            && status->longitude != 0.0
+                            )
+                        {
+                            latitude = status->latitude;
+                            longitude = status->longitude;
+                        }
+                    }
+                }
+
+                if (latitude <= 90.0
+                    && latitude >= -90.0
+                    && longitude <= 180.0
+                    && longitude >= -180.0
+                    && latitude != 0.0
+                    && longitude != 0.0)
+                {
+                    fileContents <<  "\n\n<openlayers lat=\""
+                        << latitude << "\" lon=\"" << longitude << "\" zoom=\"14\">\n";
+                    fileContents << latitude << ", " << longitude << ", [[Image:" << wikiEntry->wikiname << "|thumb|left]] Approximate location\n";
+                    fileContents << "</openlayers>\n";
+                    
                 }
             }
         }
@@ -572,9 +624,9 @@ string Wiki::LoadWikiText(WikiEntryPtr wikiEntry)
     {
         string filename(wikiEntry->inputname);
         if (!filename.empty())
-            fileContents = LoadFileToString(filename.c_str());
+            return LoadFileToString(filename.c_str());
     }
-    return fileContents;
+    return fileContents.str();
 }
 
 
