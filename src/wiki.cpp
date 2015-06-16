@@ -513,6 +513,11 @@ string Wiki::LoadWikiText(WikiEntryPtr wikiEntry)
         {
             if (wikidb->ImageHasInstances(image))
             {
+                float longitude(FLT_MAX), latitude(FLT_MAX);
+                vector<StatusUpdatePtr> statuses;
+
+                wikidb->LoadStatusUpdatesForImage(statuses, imagename);
+
                 ImageInstancePtr fullsize(wikidb->ImageInstanceFullsize(image));
                 ImageInstancePtr thumb(wikidb->ImageInstanceThumb(image));
                 ImageInstancePtr original(wikidb->ImageInstanceOriginal(image));
@@ -520,6 +525,25 @@ string Wiki::LoadWikiText(WikiEntryPtr wikiEntry)
                 fileContents <<  "== ";
                 fileContents <<  ConvertImageNameToDescription(imagename);
                 fileContents <<  " ==\n\n";
+
+
+                for (auto status : statuses)
+                {
+                    fileContents <<  "\n\n" + status->status + "\n\n";
+                    if (status->locationset
+                        && status->latitude <= 90.0
+                        && status->latitude >= -90.0
+                        && status->longitude <= 180.0
+                        && status->longitude >= -180.0
+                        && status->latitude != 0.0
+                        && status->longitude != 0.0
+                        )
+                    {
+                        latitude = status->latitude;
+                        longitude = status->longitude;
+                    }
+                }
+                
                 fileContents <<  "<img src=\"" + WebPathFromFilename(fullsize->filename)
                     + "\" width=\"" + to_string(fullsize->width)
                     + "\" height=\"" + to_string(fullsize->height)
@@ -545,7 +569,6 @@ string Wiki::LoadWikiText(WikiEntryPtr wikiEntry)
 
 
                 int width(0), height(0);
-                float longitude(FLT_MAX), latitude(FLT_MAX);
 
                 map<string,string> attributes;
                 if (FindJPEGSize(original->filename, width, height, attributes))
@@ -580,29 +603,6 @@ string Wiki::LoadWikiText(WikiEntryPtr wikiEntry)
                     fileContents <<  "</ul>\n";
                 }
 
-
-                vector<StatusUpdatePtr> statuses;
-                wikidb->LoadStatusUpdatesForImage(statuses, imagename);
-                for (auto status : statuses)
-                {
-                    fileContents <<  "\n\n" + status->status + "\n\n";
-                    if (latitude == FLT_MAX
-                        || longitude == FLT_MAX)
-                    {
-                        if (status->locationset
-                            && status->latitude <= 90.0
-                            && status->latitude >= -90.0
-                            && status->longitude <= 180.0
-                            && status->longitude >= -180.0
-                            && status->latitude != 0.0
-                            && status->longitude != 0.0
-                            )
-                        {
-                            latitude = status->latitude;
-                            longitude = status->longitude;
-                        }
-                    }
-                }
 
                 if (latitude <= 90.0
                     && latitude >= -90.0
@@ -793,11 +793,11 @@ void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t l
     }
     if (treeBuilder.HasA("openlayers")) {
         os <<
-            "<link rel=\"stylesheet\" href=\"js/ol/default/style.css\" type=\"text/css\">\n"
+            "<link rel=\"stylesheet\" href=\"js/OpenLayers-3.6.0/ol.css\" type=\"text/css\">\n"
             "\n"
             "<link  rel=\"stylesheet\" href=\"js/ol/default/google.css\" type=\"text/css\">\n"
             "\n"
-            "<script type=\"text/javascript\" src=\"js/OpenLayers-2.11/OpenLayers.js\">\n"
+            "<script type=\"text/javascript\" src=\"js/OpenLayers-3.6.0/ol.js\">\n"
             "</script>\n"
             "<script type=\"text/javascript\" src=\"js/OSM_LocalTileProxy.js\">\n"
             "</script>\n";
