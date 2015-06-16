@@ -67,6 +67,10 @@ Regex regex_gpstrack("gpstrack",
 Regex regex_dotkml("dotkml",
                    "^(.*\\.kml)(\\n|$)");
 
+Regex regex_dotgpx("dotgpx",
+                "^(.*\\.gpx)(\\n|$)");
+
+
 Regex regex_georss("georss",
                    "^(georss)\\:(.*)(\\/.*)(\\n|$)");
 
@@ -191,6 +195,16 @@ void OpenLayersNode::AsHTML(HTMLOutputter &outputter)
         
             vars[string("kmlurl")] = match.Match(1);
             outputter.AddString(subst(sections_KML, vars));
+			changed = true;
+        } else if (regex_dotgpx.Match(buffer, bufferLength, match)) 
+        {
+            buffer += match.End(0); bufferLength -= match.End(0);
+
+            map<string, string> vars;
+            CopyMap(attrs, vars);
+        
+            vars[string("gpxurl")] = match.Match(1);
+            outputter.AddString(subst(sections_GPX, vars));
 			changed = true;
 		} else if (regex_georss.Match(buffer, bufferLength, match))
         {

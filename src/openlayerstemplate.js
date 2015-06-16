@@ -106,6 +106,46 @@ function makeMap$mapnum()
 	selectControl.activate();
 	map.addLayer(newlayer);
 
+	// FbySection: GPX
+	newlayer = new OpenLayers.Layer.Vector
+	("GPX",
+	 {
+		 strategies: [new OpenLayers.Strategy.Fixed()],
+		 protocol: new OpenLayers.Protocol.HTTP
+		 ({
+			  url: "$gpxurl",
+			  format: new OpenLayers.Format.GPX({
+				  maxDepth: 2
+			  })
+          })
+     });
+	selectControl = new OpenLayers.Control.SelectFeature(
+		newlayer,
+		{onSelect: function (feature) 
+		 {
+			 selectedFeature = feature;
+			 popup = new OpenLayers.Popup.FramedCloud(
+				 "chicken", 
+				 feature.geometry.getBounds().getCenterLonLat(),
+				 new OpenLayers.Size(100,150),
+				 "<div style='font-size:.8em'><b>Name:</b>"+feature.attributes.name+"<br><b>Description:</b>"+feature.attributes.description+"</div>",
+				 null, true,
+				 function () {selectControl.unselect(selectedFeature);}
+				 );
+			 feature.popup = popup;
+			 map.addPopup(popup);
+		 },
+		 onUnselect: function (feature) 
+		 {
+			 map.removePopup(feature.popup);
+			 feature.popup.destroy();
+			 feature.popup = null;
+		 },
+		});
+	map.addControl(selectControl);
+	selectControl.activate();
+	map.addLayer(newlayer);
+
 	// FbySection: GeoRSS
 	newlayer = new OpenLayers.Layer.GeoRSS( '$georsslayer', '$georssurl');
 	selectControl = new OpenLayers.Control.SelectFeature(

@@ -2,6 +2,7 @@
 #define openlayerstemplate_H_INCLUDED
 extern const char *sections_preamble;
 extern const char *sections_KML;
+extern const char *sections_GPX;
 extern const char *sections_GeoRSS;
 extern const char *sections_markerlayerbegin;
 extern const char *sections_marker;
