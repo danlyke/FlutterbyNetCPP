@@ -114,7 +114,7 @@ const char *sections_KML =
 
 const char *sections_GPX = 
 "	newlayer = new OpenLayers.Layer.Vector\n"
-"	(\"GPX\",\n"
+"	(\"$gpxtitle\",\n"
 "	 {\n"
 "		 strategies: [new OpenLayers.Strategy.Fixed()],\n"
 "		 protocol: new OpenLayers.Protocol.HTTP\n"

@@ -108,7 +108,7 @@ function makeMap$mapnum()
 
 	// FbySection: GPX
 	newlayer = new OpenLayers.Layer.Vector
-	("GPX",
+	("$gpxtitle",
 	 {
 		 strategies: [new OpenLayers.Strategy.Fixed()],
 		 protocol: new OpenLayers.Protocol.HTTP

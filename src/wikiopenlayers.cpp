@@ -60,12 +60,14 @@ static string JavaScriptQuote(const string &s)
 
 Regex regex_kml("kml",
                 "^(kml)\\:(.*?)(\\n|$)");
-
 Regex regex_gpstrack("gpstrack",
                      "^(gpstrack):(.*?)\\/(.*?)\\/(.*?)(\\/\\n|\n|$)");
 
 Regex regex_dotkml("dotkml",
                    "^(.*\\.kml)(\\n|$)");
+
+Regex regex_gpx("gpx",
+                "^(gpx)\\:(.*?([^\\/\\n\\r]+))(\\n|$)");
 
 Regex regex_dotgpx("dotgpx",
                 "^(.*\\.gpx)(\\n|$)");
@@ -195,6 +197,17 @@ void OpenLayersNode::AsHTML(HTMLOutputter &outputter)
         
             vars[string("kmlurl")] = match.Match(1);
             outputter.AddString(subst(sections_KML, vars));
+			changed = true;
+        } else if (regex_gpx.Match(buffer, bufferLength, match)) 
+        {
+            buffer += match.End(0); bufferLength -= match.End(0);
+
+            map<string, string> vars;
+            CopyMap(attrs, vars);
+        
+            vars[string("gpxurl")] = match.Match(2);
+            vars[string("gpxtitle")] = match.Match(3);
+            outputter.AddString(subst(sections_GPX, vars));
 			changed = true;
         } else if (regex_dotgpx.Match(buffer, bufferLength, match)) 
         {
