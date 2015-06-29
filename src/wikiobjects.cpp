@@ -15,7 +15,7 @@ bool Image::LoadInstances(FbyDBPtr db)
         string sql("SELECT * FROM ImageInstance WHERE imagename=" + db->Quote(imagename)
             + " ORDER BY width");
 //        cout << "Loading instance " << sql << endl;
-        db->Load(instances, sql.c_str());
+        db->Load(&instances, sql.c_str());
         for (auto inst = instances.begin() ; inst != instances.end(); ++inst)
         {
 //            cout << "   " << (*inst)->filename << endl;

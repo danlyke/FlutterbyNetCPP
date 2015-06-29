@@ -71,9 +71,9 @@ int main(int /* argc */, char ** /* argv */, char ** /* env */)
         {
             if (s != a.begin()) sql += " OR ";
 
-	    string ss(*s);
- 	    if (ss.substr(0,3) == "id=")
-	      ss.erase(0,3);
+            string ss(*s);
+            if (ss.substr(0,3) == "id=")
+                ss.erase(0,3);
             sql += "xid=" + db->Quote(ss);
         }
         sql += ")";
@@ -101,7 +101,7 @@ int main(int /* argc */, char ** /* argv */, char ** /* env */)
     }
 
     sql += " ORDER BY id DESC LIMIT " + to_string(limit);
-    db->Load(statuses, sql.c_str());
+    db->Load(&statuses, sql.c_str());
 
 
     cout << cgicc::HTTPHTMLHeader() << endl;
@@ -145,7 +145,7 @@ int main(int /* argc */, char ** /* argv */, char ** /* env */)
                 + db->Quote((*status)->imagename)
                 + " ORDER BY WIDTH LIMIT 1";
             ImageInstancePtr imageInstance;
-            if (db->LoadOne(imageInstance, sql, false))
+            if (db->LoadOne(&imageInstance, sql, false))
             {
                 string filename(imageInstance->filename);
                 

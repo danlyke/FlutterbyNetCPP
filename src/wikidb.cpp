@@ -22,26 +22,26 @@ void WikiDB::NukeDatabase()
 void WikiDB::LoadDirtyWikiEntries(vector<WikiEntryPtr> &wikientries)
 {
     string sql("SELECT * FROM WikiEntry WHERE (needsContentRebuild != 0) OR (needsExternalRebuild != 0)");
-    db->Load(wikientries, sql.c_str());
+    db->Load(&wikientries, sql.c_str());
 }
 
 void WikiDB::LoadContentDirtyWikiEntries(vector<WikiEntryPtr> &wikientries)
 {
     string sql("SELECT * FROM WikiEntry WHERE (needsContentRebuild != 0)");
-    db->Load(wikientries, sql.c_str());
+    db->Load(&wikientries, sql.c_str());
 }
 
 void WikiDB::LoadReferencedDirtyWikiEntries(vector<WikiEntryPtr> &wikientries)
 {
     string sql("SELECT * FROM WikiEntry WHERE (needsExternalRebuild != 0)");
-    db->Load(wikientries, sql.c_str());
+    db->Load(&wikientries, sql.c_str());
 }
 
 
 void WikiDB::LoadAllWikiEntries(vector<WikiEntryPtr> &wikientries)
 {
     string sql("SELECT * FROM WikiEntry");
-    db->Load(wikientries, sql.c_str());
+    db->Load(&wikientries, sql.c_str());
 }
 
 
@@ -59,13 +59,13 @@ void WikiDB::EndTransaction()
 
 bool WikiDB::LoadImage(ImagePtr &image, const string &imagename)
 {
-    return db->LoadOne(image, imagename.c_str(), true);
+    return db->LoadOne(&image, imagename.c_str(), true);
 }
 
 
 bool WikiDB::LoadOrCreateImage(ImagePtr &image, const string &imagename)
 {
-    bool created = db->LoadOrCreate(image, imagename);
+    bool created = db->LoadOrCreate(&image, imagename);
 
     if (created)
     {
@@ -84,7 +84,7 @@ bool WikiDB::ImageHasInstances(ImagePtr image)
 bool WikiDB::LoadImageInstance(ImageInstancePtr &imageInstance, const string &imagepath)
 {
     string sql("SELECT * FROM ImageInstance WHERE filename=" + db->Quote(imagepath));
-    return db->LoadOne(imageInstance, sql);
+    return db->LoadOne(&imageInstance, sql);
 }
 
 
@@ -119,21 +119,21 @@ ImageInstancePtr WikiDB::ImageInstanceOriginal(ImagePtr image)
 
 bool WikiDB::LoadOrCreateImageInstance(ImageInstancePtr &imageInstance, const string &imagepath)
 {
-    return db->LoadOrCreate(imageInstance, imagepath);
+    return db->LoadOrCreate(&imageInstance, imagepath);
     string sql("SELECT * FROM ImageInstance WHERE filename=" + db->Quote(imagepath));
-    return db->LoadOne(imageInstance, sql);
+    return db->LoadOne(&imageInstance, sql);
 }
 
 
 bool WikiDB::LoadWikiEntry(WikiEntryPtr &wikiEntry, const string &name)
 {
-    return db->LoadOne(wikiEntry, name, true);
+    return db->LoadOne(&wikiEntry, name, true);
 }
 
 
 bool WikiDB::LoadOrCreateWikiEntry(WikiEntryPtr &wikiEntry, const string &name)
 {
-    if (db->LoadOrCreate(wikiEntry, name))
+    if (db->LoadOrCreate(&wikiEntry, name))
     {
         wikiEntry->needsContentRebuild = true;
         return true;
@@ -164,7 +164,7 @@ void WikiDB::LoadWikiReferencesFrom(vector<WikiEntryReferencePtr> &wikiEntryRefe
 {
     string sql("SELECT * FROM WikiEntryReference WHERE from_wikiname="
                + db->Quote(wikiname) + " ORDER BY to_wikiname");
-    db->Load(wikiEntryReferences, sql.c_str());
+    db->Load(&wikiEntryReferences, sql.c_str());
 }
 
 
@@ -172,7 +172,7 @@ void WikiDB::LoadWikiReferencesTo(vector<WikiEntryReferencePtr> &wikiEntryRefere
 {
     string sql("SELECT * FROM WikiEntryReference WHERE to_wikiname="
                + db->Quote(wikiname) + " ORDER BY from_wikiname");
-    db->Load(wikiEntryReferences, sql.c_str());
+    db->Load(&wikiEntryReferences, sql.c_str());
 }
 
 
@@ -186,7 +186,7 @@ void WikiDB::DeleteWikiReference(const string &fromWikiName, const string &toWik
         cout << sql << endl;
 
     WikiEntryPtr wikiTo;
-    if (db->LoadOne(wikiTo, toWikiName.c_str(), true))
+    if (db->LoadOne(&wikiTo, toWikiName.c_str(), true))
     {
         if (!wikiTo->needsExternalRebuild)
         {
@@ -217,7 +217,7 @@ void WikiDB::AddWikiReference(const string &fromWikiName, const string &toWikiNa
 
     WikiEntryReferencePtr reference;
 
-    if (db->LoadOrCreate(reference, referenceKeys))
+    if (db->LoadOrCreate(&reference, referenceKeys))
     {
         if (debug_output)
             cout << "Writing reference from " << referenceKeys[0] << " to " << referenceKeys[1] << endl;
@@ -231,14 +231,14 @@ void WikiDB::LoadStatusUpdates(vector<StatusUpdatePtr> &updates,
                        const string &xid)
 {
     string sql("SELECT * FROM StatusUpdate WHERE xid=" + db->Quote(xid));
-    db->Load(updates, sql.c_str());
+    db->Load(&updates, sql.c_str());
 }
 
 void WikiDB::LoadStatusUpdatesForImage(vector<StatusUpdatePtr> &updates, 
                                        const string &imagename)
 {
     string sql("SELECT * FROM StatusUpdate WHERE imagename=" + db->Quote(imagename));
-    db->Load(updates, sql.c_str());
+    db->Load(&updates, sql.c_str());
 }
 
 
@@ -251,7 +251,7 @@ void WikiDB::LoadStatusUpdates(vector<StatusUpdatePtr> &updates,
                + " AND entered <= "
                + db->Quote(to)
                + " ORDER BY id LIMIT 100");
-    db->Load(updates, sql.c_str());
+    db->Load(&updates, sql.c_str());
 }
 
 void WikiDB::LoadDPLEntries(vector<WikiEntryPtr> & entries,
@@ -289,7 +289,7 @@ void WikiDB::LoadDPLEntries(vector<WikiEntryPtr> & entries,
 
     if (pattern.empty())
     {
-        db->Load(entries, sql.c_str());
+        db->Load(&entries, sql.c_str());
     }
     else
     {
@@ -298,7 +298,7 @@ void WikiDB::LoadDPLEntries(vector<WikiEntryPtr> & entries,
         
 
         vector<WikiEntryPtr> unfilteredEntries;
-        db->Load(unfilteredEntries, sql.c_str());
+        db->Load(&unfilteredEntries, sql.c_str());
             
         int toCopy = count.empty() ? unfilteredEntries.size() : stoi(count);
             
