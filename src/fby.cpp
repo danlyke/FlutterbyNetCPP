@@ -140,7 +140,7 @@ int main(int ac, char* av[])
 //        cout << "output_directory : " << output_directory << endl;
 //        cout << "google_maps_api_key : " << google_maps_api_key << endl;
 
-        WikiPtr wiki(FBYNEW Wiki(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke'")));
+        WikiPtr wiki(new Wiki(new FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke'")));
         wiki->SetInputDirectory(input_directory);
         wiki->SetStagingDirectory(staging_directory);
         wiki->SetOutputDirectory(output_directory);

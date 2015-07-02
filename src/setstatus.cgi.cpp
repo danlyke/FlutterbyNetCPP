@@ -58,7 +58,7 @@ const char *html_header =
 
 int main(int /* argc */, char ** /* argv */, char ** /* env */)
 {
-     FbyDBPtr db(FBYNEW FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke' host='localhost' "));
+     FbyDBPtr db(new FbyPostgreSQLDB("dbname='flutterbynet' user = 'danlyke' password = 'danlyke' host='localhost' "));
     cgicc::Cgicc cgi;
 
     cout << cgicc::HTTPHTMLHeader() << endl;

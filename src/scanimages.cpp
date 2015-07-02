@@ -19,7 +19,7 @@ namespace fs = boost::filesystem;
 
 int main(int argc, char **argv)
 {
-    WikiPtr wiki(FBYNEW Wiki(FBYNEW FbySQLiteDB("../var/fby.sqlite3")));
+    WikiPtr wiki(new Wiki(new FbySQLiteDB("../var/fby.sqlite3")));
     int imagecount = 0;
 
     wiki->BeginTransaction();

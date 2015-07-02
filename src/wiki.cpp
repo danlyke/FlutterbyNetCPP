@@ -59,7 +59,7 @@ ParseTreeNode *TreeBuilderWiki::NodeFactory(const string &tagname)
 // "hostaddr = '127.0.0.1' port = '' dbname = 'fwaggle' user = 'fwaggle' password = 'password' connect_timeout = '10'"
 
 Wiki::Wiki(FbyDBPtr db) : BaseObj(BASEOBJINIT(Wiki)),
-                          wikidb(FBYNEW WikiDB(db)),
+                          wikidb(new WikiDB(db)),
                staging_area(),
                output_area(),
                input_area(),
@@ -793,11 +793,9 @@ void Wiki::ParseWikiBufferToOutput(string wikiname, const char *buffer, size_t l
     }
     if (treeBuilder.HasA("openlayers")) {
         os <<
-            "<link rel=\"stylesheet\" href=\"js/OpenLayers-3.6.0/ol.css\" type=\"text/css\">\n"
-            "\n"
+            "<link rel=\"stylesheet\" href=\"js/ol/default/style.css\" type=\"text/css\">\n"
             "<link  rel=\"stylesheet\" href=\"js/ol/default/google.css\" type=\"text/css\">\n"
-            "\n"
-            "<script type=\"text/javascript\" src=\"js/OpenLayers-3.6.0/ol.js\">\n"
+            "<script type=\"text/javascript\" src=\"js/OpenLayers-2.11/OpenLayers.js\">\n"
             "</script>\n"
             "<script type=\"text/javascript\" src=\"js/OSM_LocalTileProxy.js\">\n"
             "</script>\n";
@@ -1403,7 +1401,7 @@ void Wiki::WriteWikiFile(string target_file)
     }
     else
     {
-        entry = WikiEntryPtr(FBYNEW(WikiEntry));
+        entry = WikiEntryPtr(new(WikiEntry));
         entry->wikiname = wikiname;
         entry->inputname = outputpath;
         entry->needsContentRebuild = true;

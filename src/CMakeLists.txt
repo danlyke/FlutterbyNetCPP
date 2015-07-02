@@ -37,7 +37,7 @@ include_directories($ENV{HOME}/include)
 # target_link_libraries(fby LINK_PUBLIC sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams )
 
 
-add_custom_command( OUTPUT sqldefinitions.cpp sqldefinitions.h sqldefinitions.sql
+add_custom_command( OUTPUT sqldefinitions.cpp sqldefinitions.sql
   COMMAND sqlextractor ARGS ${CMAKE_CURRENT_SOURCE_DIR}/wikiobjects.h
   MAIN_DEPENDENCY wikiobjects.h )
 

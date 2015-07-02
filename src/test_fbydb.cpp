@@ -47,11 +47,11 @@ int main(int /* argc */, const char * const * /* argv */)
     }
     
     cout << "About to instantiate SQlite" << endl;
-    FbyDBPtr db(FBYNEW FbySQLiteDB("../var/fby.sqlite3") );
+    FbyDBPtr db(new FbySQLiteDB("../var/fby.sqlite3") );
     cout << "About to load" << endl;
 
     vector<WikiEntryPtr> data;
-    db->Load(data, "SELECT * FROM WikiEntry");
+    db->Load(&data, "SELECT * FROM WikiEntry");
 
     for (int pass = 0; pass < 2; ++pass)
     {

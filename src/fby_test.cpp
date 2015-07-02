@@ -135,7 +135,7 @@ int main(int ac, char* av[])
 //        cout << "output_directory : " << output_directory << endl;
 //        cout << "google_maps_api_key : " << google_maps_api_key << endl;
 
-        WikiPtr wiki(FBYNEW Wiki(FBYNEW FbySQLiteDB("../var/fby.sqlite3")));
+        WikiPtr wiki(new Wiki(new FbySQLiteDB("../var/fby.sqlite3")));
         wiki->SetInputDirectory(input_directory);
         wiki->SetStagingDirectory(staging_directory);
         wiki->SetOutputDirectory(output_directory);
