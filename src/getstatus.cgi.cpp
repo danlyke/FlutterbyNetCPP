@@ -50,6 +50,10 @@ const char *html_header =
     "<div class=\"content\">\n";
 
 
+Regex regexURL("URL",
+               "(https?|ftp):[^\"\\)\\s ]*[^\",.\\)\\s ])");
+
+
 
 int main(int /* argc */, char ** /* argv */, char ** /* env */)
 {

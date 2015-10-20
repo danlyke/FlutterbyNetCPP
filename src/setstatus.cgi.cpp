@@ -76,19 +76,14 @@ int main(int /* argc */, char ** /* argv */, char ** /* env */)
                                      + db->Quote(cgi("pw")) + ",'sha512')"));
 #endif
 
-    cout << cgicc::HTTPHTMLHeader() << endl;
-    cout << html_header;
-
-
-
     if ((!param_status.empty()) && !person_id.empty())
     {
-        bool needsrebuild(false);
         string imagename(cgi("photoname"));
         auto ufh(cgi.getFile("photofile"));
 
-        if ((!cgi("photofile").empty())
-                && !imagename.empty())
+        if (cgi.getFiles().begin() != cgi.getFiles().end()
+            && (!cgi("photofile").empty())
+            && !imagename.empty())
         {
             cout << "<p><b>Filename: " << ufh->getFilename() << "</b></p>\n";
             cout << "<p><b>Imagename: " << imagename << "</b></p>\n";
@@ -103,8 +98,8 @@ int main(int /* argc */, char ** /* argv */, char ** /* env */)
                     imagename.erase(i, i+1);
                     --i;
                 }
-            }
-
+            
+}
             string writecmd("/home/danlyke/bin/fby --writeimagefile \"" + imagename + "\"");
             cout <<  "Getting uploaded photo: " << writecmd << "<br>\n";
 
@@ -118,7 +113,10 @@ int main(int /* argc */, char ** /* argv */, char ** /* env */)
                 cout <<  "Unable to write image<br>\n";
             }
             chdir(cwd.c_str());
-            needsrebuild = true;
+        }
+        else
+        {
+            imagename.clear();
         }
 
     
@@ -183,12 +181,24 @@ int main(int /* argc */, char ** /* argv */, char ** /* env */)
         keys.push_back("identica_update");
         values.push_back(param_identica_update.empty() ? "0" : "1");
 
+        string publishdelay(cgi("publishdelay"));
+
+        if (publishdelay.empty())
+        {
+            publishdelay = "0";
+        }
+        
+        keys.push_back("publishdelay");
+        values.push_back(publishdelay);
 
         keys.push_back("person_id");
         values.push_back(person_id);
 
-        keys.push_back("imagename");
-        values.push_back(imagename);
+        if (!imagename.empty())
+        {
+            keys.push_back("imagename");
+            values.push_back(imagename);
+        }
         keys.push_back("xid");
         values.push_back(xid);
 
@@ -215,13 +225,15 @@ int main(int /* argc */, char ** /* argv */, char ** /* env */)
                 "flutterby", "facebook", "identica", "twitter",
                 NULL
             };
+
         for (int i = 0; socialMedias[i]; ++i)
         {
             if (!cgi(socialMedias[i]).empty())
             {
                 string subsql = "INSERT INTO update_";
                 subsql += socialMedias[i];
-                subsql += "(statusupdate_id) VALUES (" + recid + ")";
+                subsql += "(statusupdate_id,publishdelay) VALUES ("
+                    + recid + "," + publishdelay + ")";
                 db->Do(subsql);
             }
         }
@@ -270,6 +282,17 @@ int main(int /* argc */, char ** /* argv */, char ** /* env */)
         "<br>Photo: <input name=\"photofile\" type=\"file\" />"
         "<br>Photo Name: <input name=\"photoname\" size=\"32\" value=\""
          << imagename << "\" />";
+
+    cout << "<br>Publish: <select name=\"publishdelay\">\n"
+         << "<option value=\"0\">Now</option>\n"
+         << "<option value=\"0.125\">3 hours</option>\n"
+         << "<option value=\"0.25\">6 hours</option>\n"
+         << "<option value=\"0.375\">9 hours</option>\n"
+         << "<option value=\"0.5\">12 hours</option>\n"
+         << "<option value=\"0.75\">18 hours</option>\n"
+         << "<option value=\"1\".0>Tomorrow</option>\n"
+         << "</select>\n";
+
     cout << "<br><input type=\"submit\" name=\"Save\" value=\"save\" /></form><hr />";
 
     cout <<

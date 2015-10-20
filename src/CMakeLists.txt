@@ -84,9 +84,12 @@ target_link_libraries (scanwikifilesforlinks LINK_PUBLIC fbywiki fby sqlite3 pq 
 add_executable(rebuilddirtyfiles rebuilddirtyfiles.cpp)
 target_link_libraries (rebuilddirtyfiles LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
-add_executable(getstatus getstatus.cgi.cpp)
-target_link_libraries (getstatus LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
+add_executable(getstatus.cgi getstatus.cgi.cpp)
+target_link_libraries (getstatus.cgi LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
-add_executable(setstatus setstatus.cgi.cpp)
-target_link_libraries (setstatus LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
+add_executable(setstatus.cgi setstatus.cgi.cpp)
+target_link_libraries (setstatus.cgi LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
+
+add_executable(cgitest.cgi cgitest.cgi.cpp)
+target_link_libraries (cgitest.cgi LINK_PUBLIC fbywiki fby sqlite3 pq boost_filesystem boost_system gdbm pcre boost_iostreams boost_program_options cgicc /home/danlyke/lib/libgtest.a /home/danlyke/lib/libgtest_main.a pthread)
 
