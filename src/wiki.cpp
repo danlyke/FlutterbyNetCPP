@@ -559,7 +559,7 @@ string Wiki::LoadWikiText(WikiEntryPtr wikiEntry)
                     if (instance != instances.begin())
                         fileContents <<  " | ";
 
-                    fileContents <<   "<a href=\"" << WebPathFromFilename((*instance)->filename)
+                    fileContents <<   "<a href=\"Image:" << (*instance)->imagename
                                  << "\">" << to_string((*instance)->width)
                                  << "x" << to_string((*instance)->height)
                                  << "</a>";
